@@ -97,9 +97,37 @@ class DeviceActions(
         device.executeShellCommand("input keyevent KEYCODE_SLEEP")
     }
 
+    /**
+     * 解锁屏幕。
+     * 先唤醒，再滑动解锁。仅适用于"无密码"或"滑动"锁屏模式。
+     * 如果设备有密码/指纹锁，需要先手动关闭。
+     */
     fun unlockScreen() {
         setScreenOn()
-        device.executeShellCommand("input keyevent KEYCODE_MENU")
+        Thread.sleep(500)
+        // 检查是否在锁屏
+        val powerState = device.executeShellCommand("dumpsys power | grep mWakefulness")
+        if (powerState.contains("Dozing") || powerState.contains("Asleep")) {
+            device.executeShellCommand("input keyevent KEYCODE_WAKEUP")
+            Thread.sleep(1000)
+        }
+        // 滑动解锁
+        val w = device.displayWidth
+        val h = device.displayHeight
+        device.swipe(w / 2, h * 3 / 4, w / 2, h / 4, 10)
+        Thread.sleep(1000)
+    }
+
+    /** 检查屏幕是否亮着且已解锁 */
+    fun isScreenUnlocked(): Boolean {
+        val power = device.executeShellCommand("dumpsys power | grep mWakefulness")
+        val lock = device.executeShellCommand("dumpsys window | grep mDreamingLockscreen")
+        return power.contains("Awake") && !lock.contains("mDreamingLockscreen=true")
+    }
+
+    /** 保持屏幕常亮（设置 10 分钟超时） */
+    fun keepScreenOn() {
+        device.executeShellCommand("settings put system screen_off_timeout 600000")
     }
 
     fun setAutoRotate(enabled: Boolean) {
