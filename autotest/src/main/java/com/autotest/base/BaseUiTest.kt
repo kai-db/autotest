@@ -10,10 +10,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
+import com.autotest.report.ReportCollector
+import com.autotest.report.ReportWriter
 import com.autotest.util.allowPermission
 import com.autotest.util.waitForApp
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.runner.RunWith
 import java.io.File
 
@@ -29,6 +32,9 @@ abstract class BaseUiTest {
 
     val idlingResource = CountingIdlingResource("BaseUiTest")
 
+    @get:Rule
+    val reportCollector = ReportCollector()
+
     @Before
     open fun setUp() {
         TestConfig.init()
@@ -40,7 +46,17 @@ abstract class BaseUiTest {
     @After
     open fun tearDown() {
         IdlingRegistry.getInstance().unregister(idlingResource)
-        Espresso.onIdle()
+        try {
+            Espresso.onIdle()
+        } finally {
+            val report = reportCollector.buildReport(
+                appPackage = TestConfig.packageName,
+                endTime = System.currentTimeMillis(),
+                device = null
+            )
+            val reportFile = File(TestConfig.screenshotDir, "report.json")
+            ReportWriter.write(report, reportFile)
+        }
     }
 
     // ==================== App 生命周期 ====================
