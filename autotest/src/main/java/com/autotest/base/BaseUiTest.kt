@@ -10,6 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
+import com.autotest.intercept.DialogDismissInterceptor
 import com.autotest.intercept.InterceptorChain
 import com.autotest.intercept.LoggingInterceptor
 import com.autotest.intercept.ScreenshotInterceptor
@@ -61,6 +62,7 @@ abstract class BaseUiTest {
 
         logger = DefaultTestLogger(logDir = TestConfig.screenshotDir)
         interceptors.addAll(
+            DialogDismissInterceptor(logger),
             LoggingInterceptor(logger),
             ScreenshotInterceptor()
         )

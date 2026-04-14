@@ -5,6 +5,7 @@ import com.autotest.dsl.scenario
 import com.autotest.intercept.InterceptorChain
 import com.autotest.lifecycle.TestLifecycleManager
 import com.autotest.log.TestLogger
+import com.autotest.report.HtmlReporter
 import com.autotest.report.ReportCollector
 import com.autotest.report.ReportSummary
 import com.autotest.report.ReportWriter
@@ -123,13 +124,21 @@ class TestRunner(
     }
 
     /**
-     * 将报告写入文件。
+     * 将报告写入文件（JSON + HTML 双格式）。
+     * @return JSON 报告文件
      */
     fun writeReport(): File {
         val report = generateReport()
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val file = File(reportDir, "report_$timestamp.json")
-        return ReportWriter.write(report, file)
+
+        val jsonFile = File(reportDir, "report_$timestamp.json")
+        ReportWriter.write(report, jsonFile)
+
+        val htmlFile = File(reportDir, "report_$timestamp.html")
+        HtmlReporter.generate(report, htmlFile)
+        logger.i("TestRunner", "HTML 报告: ${htmlFile.absolutePath}")
+
+        return jsonFile
     }
 
     /**
