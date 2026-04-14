@@ -1,12 +1,14 @@
 # Android AutoTest Framework
 
-可复用的 Android 真机自动化测试框架，基于 **Espresso + UiAutomator**，支持 `mavenLocal` 发布，任意项目一行依赖接入。
+可复用的 Android 自动化测试框架，基于 **Espresso + UiAutomator**，配合 **Claude Code + mobile-mcp** 实现 AI 驱动的测试。
+
+**v1.2.0** | 15 个模块 | 62 条单元测试
 
 ---
 
-## 接入方式
+## 快速开始
 
-### 1. 发布到本地 Maven
+### 发布到本地 Maven
 
 ```bash
 git clone git@github.com:kai-db/autotest.git
@@ -14,71 +16,14 @@ cd autotest
 ./gradlew :autotest:publishToMavenLocal
 ```
 
-发布后 aar 位于 `~/.m2/repository/com/autotest/autotest/1.0.0/`
-
-### 2. 项目中引用
-
-**根 build.gradle** 的 `allprojects.repositories` 加：
+### 项目中引用
 
 ```groovy
-mavenLocal()
-```
+// 根 build.gradle
+allprojects { repositories { mavenLocal() } }
 
-**app/build.gradle** 加依赖（一行搞定，所有测试库自动传递）：
-
-```groovy
-androidTestImplementation 'com.autotest:autotest:1.0.0'
-```
-
-**app/build.gradle** 确认 testInstrumentationRunner：
-
-```groovy
-defaultConfig {
-    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-}
-```
-
-### 3. 创建配置文件
-
-新建 `app/src/androidTest/assets/test-config.properties`：
-
-```properties
-# 被测 App 包名（必填）
-app.packageName=com.your.app
-
-# App 启动超时（毫秒）
-app.launchTimeout=15000
-
-# 最大可接受启动时间（性能测试用）
-app.maxLaunchTime=10000
-
-# 底部 Tab 文本（逗号分隔）
-app.bottomTabs=消息,朋友,发现,我的
-
-# 截图保存目录
-app.screenshotDir=/sdcard/Pictures/autotest
-
-# 测试失败时自动截图
-app.screenshotOnFailure=true
-```
-
-也支持自定义 key，在测试里用 `TestConfig.getString("your.key")` 读取。
-
----
-
-## 运行测试
-
-```bash
-# 全部测试
-./gradlew :app:connectedAndroidTest
-
-# 指定测试类
-./gradlew :app:connectedAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.xxx.test.cases.AppLaunchTest
-
-# 命令行临时覆盖配置（优先级最高）
-./gradlew :app:connectedAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.app.packageName=com.other.app
+// app/build.gradle
+androidTestImplementation 'com.autotest:autotest:1.2.0'
 ```
 
 ---
@@ -87,262 +32,218 @@ app.screenshotOnFailure=true
 
 ```
 com.autotest
-├── config/TestConfig          配置中心（properties + 命令行参数）
-├── base/BaseUiTest            测试基类（设备操作 + App 启动）
-├── base/BaseActivityTest      ActivityScenario 基类
-├── action/AppActions          通用操作（Tab 切换、引导页跳过）
-├── assertion/AppAssertions    通用断言（前台验证、文本/控件可见）
-└── util/
-    ├── EspressoExt            Espresso 扩展（viewById().click() 等）
-    ├── UiAutomatorExt         UiAutomator 扩展（权限弹窗、滑动、等待）
-    ├── WaitUtil               等待工具（轮询、延迟）
-    └── ScreenshotRule         失败自动截图 JUnit Rule
+├── base/          测试基类（Espresso + UiAutomator + 拦截器 + 日志）
+├── config/        分层配置 + 多环境管理（LOCAL/CI/STAGING）
+├── data/          测试数据管理（TestAccount + JSON + 按环境区分）
+├── action/        通用操作（Tab 切换、引导页跳过）
+├── assertion/     通用断言（前台、文本、控件可见）
+├── dsl/           增强 DSL（自动编号/条件/重试/恢复/循环）
+├── engine/        执行引擎（TestRunner + TestSuite + MonitorMode）
+├── intercept/     拦截器链（日志/截图/性能）
+├── lifecycle/     测试生命周期钩子
+├── log/           统一日志（分级 D/I/W/E + Logcat + 文件）
+├── report/        结构化报告 + 摘要统计
+├── runner/        设备信息收集
+├── stability/     Flaky 分类 + 自动重试
+└── util/          Espresso/UiAutomator 扩展 + 等待工具 + 截图 Rule
 ```
 
 ---
 
-## 写测试用例
+## 配置
+
+### test-config.properties
+
+```properties
+app.packageName=com.your.app
+app.launchTimeout=15000
+app.bottomTabs=消息,朋友,发现,我的
+app.screenshotDir=/sdcard/Pictures/autotest
+app.screenshotOnFailure=true
+test.env=LOCAL
+```
+
+### 多环境
 
 ```kotlin
-@RunWith(AndroidJUnit4::class)
-@LargeTest
-class XxxTest : BaseUiTest() {
+EnvironmentManager.register(
+    EnvironmentConfig(LOCAL, "com.example.debug", launchTimeout = 10000),
+    EnvironmentConfig(CI, "com.example", launchTimeout = 20000)
+)
+val config = EnvironmentManager.current()
+```
 
-    @get:Rule
-    val screenshotRule = ScreenshotRule()
+### 测试数据
 
-    @Before
-    override fun setUp() {
-        super.setUp()
-        launchAppAndDismissDialogs()
-    }
+```kotlin
+// 代码注册
+TestDataManager.registerAccount(LOCAL, TestAccount(phone = "138...", password = "123"))
+
+// 或从 JSON 加载
+TestDataManager.loadFromJson(assets.open("test-data.json"))
+
+// 使用
+val account = TestDataManager.getAccount()
+```
+
+---
+
+## DSL 写测试
+
+```kotlin
+class LoginTest : BaseUiTest() {
 
     @Test
-    fun testSomething() {
-        // UiAutomator：跨 App / 系统操作
-        device.clickText("某个按钮")
-        device.waitForText("预期文本", 5000)
-
-        // Espresso：App 内 View 操作
-        viewById(R.id.edit_text).typeText("hello")
-        viewById(R.id.button).click()
-        viewByText("预期结果").isDisplayed()
-
-        // 断言
-        AppAssertions.assertTextVisible(device, "成功")
-        takeScreenshot("test_done")
+    fun testLogin() {
+        val s = scenario("登录流程", reportCollector, interceptors) {
+            step("启动App") {
+                launchAppAndDismissDialogs()
+            }
+            step("进入登录页") {
+                device.clickText("登录")
+            }
+            stepIf(needsInput, "输入账号") {
+                viewById(R.id.et_phone).typeText("138...")
+            }
+            flakyStep("点击登录", maxRetries = 2) {
+                viewById(R.id.btn_login).click()
+            }
+            step("验证成功") {
+                AppAssertions.assertTextVisible(device, "首页")
+            }
+        }
+        s.run()
     }
 }
 ```
 
----
-
-## API 速查
-
-### BaseUiTest（基类）
+### DSL 能力
 
 | 方法 | 说明 |
 |---|---|
-| `launchApp()` | 通过包名启动 App |
-| `launchAppAndDismissDialogs()` | 启动 + 处理权限弹窗 |
-| `launchActivity(cls)` | 启动指定 Activity |
-| `pressBack()` / `pressHome()` | 按键 |
-| `sleep(millis)` | 等待 |
-| `takeScreenshot(name)` | 截图 |
-| `assertAppInForeground()` | 断言 App 在前台 |
-
-### UiAutomator 扩展（device.xxx）
-
-| 方法 | 说明 |
-|---|---|
-| `device.clickText("文本")` | 点击含指定文本的元素 |
-| `device.clickResId("id")` | 点击指定 resource-id |
-| `device.waitForText("文本", 5000)` | 等待文本出现 |
-| `device.waitForResId("id", 5000)` | 等待控件出现 |
-| `device.waitForApp("包名", 10000)` | 等待 App 前台 |
-| `device.allowPermission()` | 权限弹窗 - 允许 |
-| `device.denyPermission()` | 权限弹窗 - 拒绝 |
-| `device.scrollUp()` / `scrollDown()` | 滑动 |
-
-### Espresso 扩展
-
-| 方法 | 说明 |
-|---|---|
-| `viewById(R.id.xxx)` | 通过 id 查找 |
-| `viewByText("文本")` | 通过文本查找 |
-| `.click()` | 点击 |
-| `.typeText("内容")` | 输入文本 |
-| `.replaceText("内容")` | 替换文本 |
-| `.isDisplayed()` | 断言可见 |
-| `.hasText("内容")` | 断言文本 |
-| `.scrollTo()` | 滚动到可见 |
-
-### AppActions
-
-| 方法 | 说明 |
-|---|---|
-| `AppActions.switchBottomTabs(device)` | 遍历底部 Tab |
-| `AppActions.waitForSplashDismiss(device)` | 跳过引导页 |
-
-### AppAssertions
-
-| 方法 | 说明 |
-|---|---|
-| `assertInForeground(device)` | App 在前台 |
-| `assertTextVisible(device, "文本")` | 文本可见 |
-| `assertResIdVisible(device, "id")` | 控件可见 |
-
-### TestConfig
-
-| 方法 | 说明 |
-|---|---|
-| `TestConfig.packageName` | 被测包名 |
-| `TestConfig.bottomTabs` | Tab 列表 |
-| `TestConfig.getString("key", "default")` | 读字符串 |
-| `TestConfig.getLong / getInt / getBoolean / getList` | 读其他类型 |
+| `step("名称") {}` | 普通步骤（自动编号） |
+| `stepIf(condition, "名称") {}` | 条件步骤 |
+| `flakyStep("名称", maxRetries) {}` | 可重试步骤 |
+| `stepWithRecovery("名称", action, recovery)` | 带异常恢复 |
+| `repeat(times, "名称") { i -> }` | 循环步骤 |
 
 ---
 
-## 配置优先级
+## 执行引擎
 
-```
-命令行参数（-e key value） > test-config.properties > 代码默认值
-```
-
----
-
-## Espresso vs UiAutomator
-
-| 场景 | 选择 |
-|---|---|
-| App 内 View 交互 | Espresso |
-| 系统权限弹窗 | UiAutomator |
-| 通知栏 / 跳转外部 App | UiAutomator |
-| 启动性能测试 | UiAutomator |
-
-两者可在同一个测试方法中混合使用。
-
----
-
-## DSL 步骤层
-
-使用 `scenario` / `step` DSL 组织测试步骤，支持与报告系统集成：
+### TestRunner — 单用例
 
 ```kotlin
-@Test
-fun testLoginFlow() {
-    val s = scenario("登录流程", reportCollector) {
-        step("打开登录页") {
-            device.clickText("登录")
-        }
-        step("输入账号密码") {
-            viewById(R.id.et_account).typeText("test")
-            viewById(R.id.et_password).typeText("123456")
-        }
-        step("点击登录按钮") {
-            viewById(R.id.btn_login).click()
-        }
-        step("验证登录成功") {
-            AppAssertions.assertTextVisible(device, "首页")
-        }
-    }
-    s.run()
+val runner = TestRunner(appPackage = "com.test", logger = logger)
+runner.runTest("冷启动", before = { launchApp() }) {
+    step("验证首页") { ... }
 }
 ```
 
-每个步骤的执行时间、通过/失败状态都会记录到 JSON 报告中。不传 `collector` 也能正常使用，只是不会记录到报告。
+### TestSuite — 批量执行
+
+```kotlin
+val suite = TestSuite("冒烟测试", runner, logger)
+suite.addTest("TC-001", "冷启动", Priority.P0) { step("...") {} }
+suite.addTest("TC-002", "Tab导航", Priority.P0) { step("...") {} }
+suite.addTest("TC-003", "登录", Priority.P1) { step("...") {} }
+
+val results = suite.runAll()  // 按 P0→P1→P2 排序执行
+```
+
+### MonitorMode — 监工模式
+
+```kotlin
+val monitor = MonitorMode(suite, logger)
+monitor.runUntilAllPass()      // 迭代直到 0 个 FAIL
+monitor.runFinalVerification() // 最终验收
+monitor.writeResults()         // 生成 TEST_RESULTS.md
+```
 
 ---
 
-## 稳定性治理
+## 拦截器
 
-### Flaky 分类
-
-`FlakyClassifier` 自动判定失败类型：
-- 含 "timeout"/"超时" → `FLAKY`（可重试）
-- 其他 → `HARD_FAIL`（直接失败）
-
-### 自动重试
-
-使用 `RetryRunner` Rule 对 Flaky 测试自动重试：
+操作和步骤前后自动执行通用逻辑：
 
 ```kotlin
+// BaseUiTest 默认注册了 LoggingInterceptor + ScreenshotInterceptor
+// 自定义拦截器：
+interceptors.add(object : Interceptor {
+    override fun beforeStep(stepNumber: String, stepName: String) {
+        logger.i("Custom", "开始步骤: $stepName")
+    }
+    override fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {
+        // 失败时自动收集日志
+    }
+})
+```
+
+内置拦截器：
+
+| 拦截器 | 功能 |
+|---|---|
+| `LoggingInterceptor` | 自动记录操作和步骤日志 |
+| `ScreenshotInterceptor` | 步骤失败自动截图 |
+| `PerformanceInterceptor` | 耗时超阈值警告 |
+
+---
+
+## 稳定性
+
+```kotlin
+// Flaky 分类
+FlakyClassifier.classify("Timeout...") // → FLAKY（可重试）
+FlakyClassifier.classify("Not found")  // → HARD_FAIL（直接失败）
+
+// 自动重试 Rule
 @get:Rule
-val retryRule = RetryRunner(
-    policy = RetryPolicy(maxRetries = 2, intervalMs = 1000)
-)
-```
-
-只有被判定为 `FLAKY` 的失败才会重试，`HARD_FAIL` 类型的错误直接抛出，不浪费时间。
-
-### WaitPolicy
-
-```kotlin
-val policy = WaitPolicy(timeoutMs = 10000, intervalMs = 500)
+val retryRule = RetryRunner(RetryPolicy(maxRetries = 2, intervalMs = 1000))
 ```
 
 ---
 
-## 设备信息与 Runner
+## 报告
 
-`RunnerInfo` 自动收集运行环境信息并嵌入报告：
+自动生成 JSON 报告，包含摘要统计：
 
 ```json
 {
-  "runnerInfo": {
-    "deviceManufacturer": "Google",
-    "deviceModel": "Pixel 6",
-    "sdkVersion": 33,
-    "androidVersion": "13",
-    "appPackage": "com.example.app",
-    "testPackage": "com.example.app.test",
-    "locale": "zh_CN"
-  }
+  "summary": {
+    "totalSteps": 12,
+    "passedSteps": 11,
+    "failedSteps": 1,
+    "passRate": 91.7,
+    "totalDurationMs": 15000
+  },
+  "steps": [...],
+  "failures": [...],
+  "runnerInfo": { "deviceModel": "SM-S9210", ... }
 }
 ```
 
 ---
 
-## 测试报告
+## AI 驱动测试（Claude Code + mobile-mcp）
 
-框架自动生成结构化 JSON 报告到 `TestConfig.screenshotDir/report.json`，包含：
-- 运行时间、设备信息
-- 失败列表（含 Flaky 分类和重试策略）
-- DSL 步骤执行结果（耗时、通过/失败）
-
-```bash
-# 拉取报告和截图
-adb pull /sdcard/Pictures/autotest/ ./test-output/
-
-# HTML 报告（Gradle 自带）
-app/build/reports/androidTests/connected/index.html
-```
+框架配合 mobile-mcp 实现 AI 驱动的交互式测试，详见 `docs/05-AI测试手册.md`。
 
 ---
 
-## CI 集成
+## 文档
 
-```bash
-# 发布框架到本地 Maven
-./gradlew :autotest:publishToMavenLocal
-
-# 运行全部测试
-./gradlew :app:connectedAndroidTest
-
-# 指定测试类
-./gradlew :app:connectedAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=com.xxx.test.cases.AppLaunchTest
-
-# 命令行覆盖配置
-./gradlew :app:connectedAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.app.packageName=com.other.app
-
-# 拉取结果
-adb pull /sdcard/Pictures/autotest/ ./test-output/
-```
+| 文件 | 内容 |
+|---|---|
+| `docs/01-架构设计.md` | 系统全景 + 模块职责 |
+| `docs/02-技术方案.md` | Claude Code + mobile-mcp 方案 + 铁律 |
+| `docs/03-可行性评估.md` | 风险分析 + 能力边界 |
+| `docs/04-开发计划.md` | 4 阶段任务计划 |
+| `docs/05-AI测试手册.md` | 给 AI 的操作手册 |
+| `CHANGELOG.md` | 版本变更记录 |
+| `TEST_CASES.md` | 测试用例定义 |
 
 ---
 
-## 版本升级
+## 版本
 
-修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal`，使用方改版本号即可。
+当前版本 `1.2.0`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
