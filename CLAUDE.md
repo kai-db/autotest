@@ -42,7 +42,7 @@ com.autotest
 
 | App | 包名 | 底部 Tab |
 |---|---|---|
-| DeBox | `com.tm.security.wallet` | 首页、社区、发现、我的 |
+| DeBox | `com.tm.security.wallet` | 消息、朋友、发现、我的 |
 | 门禁终端 | `io.xcc.access` | - |
 
 ### 测试前检查

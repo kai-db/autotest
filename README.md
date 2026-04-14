@@ -53,7 +53,7 @@ app.launchTimeout=15000
 app.maxLaunchTime=10000
 
 # 底部 Tab 文本（逗号分隔）
-app.bottomTabs=首页,消息,我的
+app.bottomTabs=消息,朋友,发现,我的
 
 # 截图保存目录
 app.screenshotDir=/sdcard/Pictures/autotest
