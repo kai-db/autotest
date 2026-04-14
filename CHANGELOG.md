@@ -2,6 +2,17 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.3.0] - 2026-04-14
+
+### Added
+- **TestCaseParser** (`engine/TestCaseParser.kt`)：从 TEST_CASES.md 自动解析用例（编号/名称/优先级/步骤/验证标准）
+- **HTML 报告生成器** (`report/HtmlReporter.kt`)：可视化 HTML 报告（摘要卡片+步骤表格+失败详情+XSS 防护）
+- **DialogDismissInterceptor** (`intercept/DialogDismissInterceptor.kt`)：自动弹窗处理拦截器
+  - 系统权限弹窗（resource-id 精确匹配）
+  - App 弹窗（"稍后再说"/"跳过"/"知道了"等文本匹配）
+  - 参考 Kaspresso SystemDialogSafetyBehaviorInterceptor
+- 新增 8 条单元测试（总计 70 条，17 个测试文件）
+
 ## [1.2.0] - 2026-04-14
 
 ### Added
