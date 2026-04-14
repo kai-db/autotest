@@ -1,0 +1,179 @@
+# 系统架构文档
+
+> Android AutoTest 框架 + Claude Code + mobile-mcp 自动化测试体系
+
+## 1. 系统全景
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      用户（开发/测试）                         │
+│                   "帮我测一下登录流程"                         │
+└───────────────┬──────────────────────────────────────────────┘
+                │
+    ┌───────────▼───────────┐
+    │   Claude Code / Codex  │  AI 大脑
+    │   理解意图 → 规划步骤   │  生成测试 → 分析结果
+    └───────────┬───────────┘
+                │ 调用 MCP 工具
+    ┌───────────▼───────────┐
+    │   mobile-mcp Server    │  设备桥接
+    │   截图/点击/输入/滑动   │  adb 封装
+    └───────────┬───────────┘
+                │ adb 命令
+    ┌───────────▼───────────┐
+    │   Android 真机/模拟器   │  运行 DeBox App
+    │   com.tm.security.wallet│
+    └───────────────────────┘
+
+    ┌───────────────────────┐
+    │   autotest AAR 库      │  CI 自动化回归
+    │   Espresso + UiAutomator│  固定用例 + 报告
+    │   通过 Gradle 执行      │
+    └───────────────────────┘
+```
+
+## 2. 两条测试路线
+
+### 路线 A：AI 交互式测试（Claude Code + mobile-mcp）
+
+```
+用户自然语言 → Claude Code 理解 → mobile-mcp 操控真机 → 截图分析 → 判定结果
+```
+
+- **触发**：随时对话
+- **能力**：灵活探索，任意场景，能看懂截图
+- **输出**：测试结论 + 截图证据 + 可选生成 autotest 用例
+
+### 路线 B：CI 自动化回归（autotest 框架）
+
+```
+git push → CI 触发 → Gradle connectedAndroidTest → autotest 执行 → JSON 报告 → 飞书通知
+```
+
+- **触发**：每次发版 / 定时
+- **能力**：固定用例，快速执行，稳定可靠
+- **输出**：JSON 报告 + 失败截图
+
+### 闭环
+
+```
+AI 发现 bug → 生成 autotest 用例代码 → 加入 CI → 每次发版自动回归
+```
+
+## 3. autotest 框架内部架构
+
+```
+┌─────────────────────────────────────────────┐
+│                 使用方（如 debox）             │
+│  androidTestImplementation 'com.autotest:...'│
+│  继承 BaseUiTest 写测试用例                    │
+└──────────────────┬──────────────────────────┘
+                   │ 依赖
+┌──────────────────▼──────────────────────────┐
+│              autotest AAR                    │
+│                                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │  config/  │  │  base/   │  │   dsl/   │  │
+│  │ TestConfig│  │BaseUiTest│  │ Scenario │  │
+│  │ConfigLoader│ │BaseActivi│  │  Step    │  │
+│  │ConfigKeys │  │  tyTest  │  │          │  │
+│  └──────────┘  └──────────┘  └──────────┘  │
+│                                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │  action/  │  │assertion/│  │  util/   │  │
+│  │AppActions │  │AppAssert │  │EspressoEx│  │
+│  │           │  │  ions    │  │UiAutoExtn│  │
+│  │           │  │          │  │WaitUtil  │  │
+│  │           │  │          │  │Screenshot│  │
+│  └──────────┘  └──────────┘  └──────────┘  │
+│                                              │
+│  ┌──────────┐  ┌──────────┐                 │
+│  │  report/  │  │stability/│                 │
+│  │RunReport  │  │FlakyClass│                 │
+│  │ReportWrite│  │RetryRunne│                 │
+│  │ReportColle│  │RetryPolic│                 │
+│  │  ctor     │  │WaitPolicy│                 │
+│  └──────────┘  └──────────┘                 │
+│                                              │
+│  ┌──────────┐                                │
+│  │  runner/  │                                │
+│  │RunnerInfo │                                │
+│  │DeviceSele │                                │
+│  │  ctor     │                                │
+│  └──────────┘                                │
+└─────────────────────────────────────────────┘
+         │
+    Espresso + UiAutomator + JUnit4
+```
+
+### 各模块职责
+
+| 模块 | 职责 | 核心类 |
+|---|---|---|
+| config | 分层配置：properties → 命令行 → 默认值 | TestConfig, ConfigLoader, ConfigKeys |
+| base | 测试基类：设备操作、App 启动、截图 | BaseUiTest, BaseActivityTest |
+| action | 通用操作封装 | AppActions（Tab 切换、引导页跳过） |
+| assertion | 通用断言封装 | AppAssertions（前台、文本、控件可见） |
+| dsl | 步骤式 DSL | Scenario, Step, ScenarioBuilder |
+| util | 扩展工具 | EspressoExt, UiAutomatorExt, WaitUtil, ScreenshotRule |
+| report | 结构化报告 | RunReport, ReportWriter, ReportCollector, StepResult |
+| stability | 稳定性治理 | FlakyClassifier, RetryRunner, RetryPolicy |
+| runner | 设备信息 | RunnerInfo, DeviceSelector |
+
+### 依赖关系
+
+```
+config ← base ← action
+              ← assertion
+              ← dsl ← report
+         util（被所有模块使用）
+         stability ← base（RetryRunner 作为 Rule）
+         runner ← base（RunnerInfo 嵌入报告）
+         report ← base（tearDown 写报告）
+```
+
+## 4. 配置优先级
+
+```
+命令行参数（-e key value）
+        ↓ 覆盖
+test-config.properties
+        ↓ 覆盖
+代码默认值
+```
+
+## 5. 报告数据流
+
+```
+测试执行
+  │
+  ├── ReportCollector.starting() → 记录开始时间
+  ├── ReportCollector.failed()   → 记录失败 + FlakyClassifier 分类
+  ├── Scenario.run()             → 记录每步 StepResult（耗时、状态）
+  ├── ScreenshotRule.failed()    → 失败自动截图
+  │
+  ▼
+BaseUiTest.tearDown()
+  │
+  ├── RunnerInfo.collect()      → 收集设备信息
+  ├── ReportCollector.buildReport() → 组装 RunReport
+  ├── ReportWriter.write()      → 输出 JSON 文件
+  │
+  ▼
+report_20260414_153000.json
+```
+
+## 6. 技术栈
+
+| 组件 | 技术 | 版本 |
+|---|---|---|
+| 语言 | Kotlin | 2.0.21 |
+| 构建 | Gradle + Android Gradle Plugin | 8.9 / 8.7.3 |
+| UI 测试 | Espresso | 3.5.1 |
+| 跨进程测试 | UiAutomator | 2.3.0 |
+| 测试框架 | JUnit 4 | 4.13.2 |
+| JSON | Gson | 2.10.1 |
+| AI 大脑 | Claude Code / Codex | - |
+| 设备桥接 | mobile-mcp | - |
+| 最小 SDK | Android 7.0 | API 24 |
+| 编译 SDK | Android 15 | API 35 |
