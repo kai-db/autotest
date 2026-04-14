@@ -2,6 +2,18 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.5.1] - 2026-04-14
+
+### Fixed（代码审查修复 5 项）
+- **clickText/clickResId 静默失败**（P0）：找不到元素时抛 AssertionError 而非静默跳过。新增 tryClickText 用于可选操作
+- **FlakyClassifier 关键词过窄**（P0）：新增 Espresso/UiAutomator 常见超时关键词（NoMatchingView/PerformException/StaleObject/AppNotIdle 等），RetryRunner 不再形同虚设
+- **TestRunner.generateReport startTime 错误**（P0）：用真实记录的开始时间替代反推计算
+- **RetryPolicy/WaitPolicy 无参数校验**（P1）：负数参数直接 require 拒绝，给出明确错误提示
+- **DeviceActions.dumpCrashLog 管道失效**（P1）：executeShellCommand 不支持管道，改用 sh -c 包裹
+
+### Stats
+- 85 条单元测试 / 19 个测试文件
+
 ## [1.5.0] - 2026-04-14
 
 ### Added

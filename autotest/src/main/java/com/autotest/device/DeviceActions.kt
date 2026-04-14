@@ -142,7 +142,10 @@ class DeviceActions(
     }
 
     fun dumpCrashLog(packageName: String): String {
-        return device.executeShellCommand("logcat -d -t 500 | grep -i '$packageName\\|FATAL\\|crash\\|exception'")
+        val safePkg = packageName.replace("'", "\\'")
+        return device.executeShellCommand(
+            "sh -c 'logcat -d -t 500 | grep -i \"$safePkg\\|FATAL\\|crash\\|exception\"'"
+        )
     }
 
     companion object {

@@ -36,6 +36,7 @@ class TestRunner(
 ) {
 
     private val results = mutableListOf<TestCaseResult>()
+    private var suiteStartTime: Long = 0L
 
     /**
      * 执行单个测试用例。
@@ -53,6 +54,7 @@ class TestRunner(
         after: (() -> Unit)? = null,
         steps: com.autotest.dsl.ScenarioBuilder.() -> Unit
     ): TestCaseResult {
+        if (suiteStartTime == 0L) suiteStartTime = System.currentTimeMillis()
         logger.i("TestRunner", "═══ 开始用例: $name ═══")
         lifecycle.fireBeforeTest(name)
 
@@ -124,7 +126,7 @@ class TestRunner(
         val allSteps = results.flatMap { it.steps }
         return RunReport(
             appPackage = appPackage,
-            startTime = results.firstOrNull()?.let { System.currentTimeMillis() - it.durationMs } ?: 0,
+            startTime = suiteStartTime,
             endTime = System.currentTimeMillis(),
             steps = allSteps,
             summary = ReportSummary.from(allSteps)
@@ -184,6 +186,7 @@ class TestRunner(
      */
     fun reset() {
         results.clear()
+        suiteStartTime = 0L
     }
 }
 

@@ -14,14 +14,25 @@ fun UiDevice.waitForResId(resId: String, timeout: Long = 5000): Boolean {
     return wait(Until.hasObject(By.res(resId)), timeout)
 }
 
-/** 点击包含指定文本的元素 */
+/** 点击包含指定文本的元素。找不到时抛异常。 */
 fun UiDevice.clickText(text: String) {
-    findObject(By.textContains(text))?.click()
+    val obj = findObject(By.textContains(text))
+        ?: throw AssertionError("找不到包含文本 \"$text\" 的元素")
+    obj.click()
 }
 
-/** 点击指定 resource-id 的元素 */
+/** 点击指定 resource-id 的元素。找不到时抛异常。 */
 fun UiDevice.clickResId(resId: String) {
-    findObject(By.res(resId))?.click()
+    val obj = findObject(By.res(resId))
+        ?: throw AssertionError("找不到 resource-id \"$resId\" 的元素")
+    obj.click()
+}
+
+/** 尝试点击文本，找不到则忽略（用于弹窗等可选操作）。 */
+fun UiDevice.tryClickText(text: String): Boolean {
+    val obj = findObject(By.textContains(text)) ?: return false
+    obj.click()
+    return true
 }
 
 /** 处理系统权限弹窗——点击「允许」 */
