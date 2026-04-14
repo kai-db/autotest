@@ -1,215 +1,134 @@
 # Android AutoTest 完整开发计划
 
-> 从零到落地的全流程，最终目标：在 debox-android 项目中稳定运行 AI 辅助的自动化测试。
+> 两条路线并行：autotest 框架用于 CI 自动化回归，Claude Code + mobile-mcp 用于交互式 AI 测试。
 
 ---
 
 ## 整体路线图
 
 ```
-阶段1: 框架基础        ← 已完成 ✅
-阶段2: 稳定性治理       ← 已完成 ✅
-阶段3: AI 能力接入      ← 骨架完成，需补充实现
-阶段4: CI 与多设备      ← 未开始
-阶段5: debox 落地       ← 部分接入，需完善
-阶段6: 持续扩展         ← 长期迭代
+阶段1: 框架基础 + 稳定性     ← 已完成 ✅
+阶段2: 代码质量优化          ← 已完成 ✅
+阶段3: debox 落地（CI 回归）  ← 未开始
+阶段4: Claude Code + mobile-mcp 交互式测试 ← 未开始
+阶段5: CI 集成               ← 未开始
+阶段6: 持续扩展              ← 长期迭代
 ```
 
 ---
 
-## 阶段 1：框架基础 ✅ 已完成
-
-> 已完成的工作，列出供回顾。
+## 阶段 1：框架基础 + 稳定性 ✅ 已完成
 
 - [x] 1.1 项目初始化（Android Library + mavenLocal 发布）
-- [x] 1.2 BaseUiTest 基类（Espresso + UiAutomator 整合）
-- [x] 1.3 BaseActivityTest（ActivityScenario 生命周期管理）
-- [x] 1.4 Espresso 扩展（viewById/viewByText/click/typeText 等）
-- [x] 1.5 UiAutomator 扩展（权限弹窗、滑动、等待、点击）
-- [x] 1.6 WaitUtil（Espresso 线程等待 + 轮询等待）
-- [x] 1.7 ScreenshotRule（失败自动截图）
-- [x] 1.8 AppActions（Tab 切换、引导页跳过）
-- [x] 1.9 AppAssertions（前台验证、文本/控件可见断言）
-- [x] 1.10 TestConfig 分层配置（properties + 命令行参数 + ConfigLoader）
-- [x] 1.11 结构化 JSON 报告（RunReport + ReportWriter + ReportCollector）
-- [x] 1.12 DSL 步骤层（scenario/step + 报告集成）
-- [x] 1.13 RunnerInfo 设备信息收集
+- [x] 1.2 BaseUiTest / BaseActivityTest 测试基类
+- [x] 1.3 Espresso 扩展（viewById/viewByText/click/typeText 等）
+- [x] 1.4 UiAutomator 扩展（权限弹窗、滑动、等待、点击）
+- [x] 1.5 WaitUtil + ScreenshotRule
+- [x] 1.6 AppActions（Tab 切换、引导页跳过）+ AppAssertions（断言）
+- [x] 1.7 TestConfig 分层配置（ConfigLoader + ConfigKeys）
+- [x] 1.8 结构化 JSON 报告（RunReport + ReportWriter + ReportCollector）
+- [x] 1.9 DSL 步骤层（scenario/step + 报告集成）
+- [x] 1.10 RunnerInfo 设备信息 + DeviceSelector
+- [x] 1.11 FlakyClassifier + RetryRunner + RetryPolicy + WaitPolicy
+- [x] 1.12 单元测试覆盖
 
 ---
 
-## 阶段 2：稳定性治理 ✅ 已完成
+## 阶段 2：代码质量优化 ✅ 已完成
 
-- [x] 2.1 FlakyClassifier（timeout/超时 → FLAKY，其他 → HARD_FAIL）
-- [x] 2.2 RetryPolicy 数据模型
-- [x] 2.3 RetryRunner JUnit Rule（FLAKY 自动重试，HARD_FAIL 直接抛出）
-- [x] 2.4 WaitPolicy 数据模型
-- [x] 2.5 单元测试覆盖（ConfigLoader/FlakyClassifier/RetryRunner/ReportWriter/Scenario/RiskEvaluator）
-
----
-
-## 阶段 3：AI 能力落地
-
-> 当前状态：接口和骨架已有，但 AIPlugin 无实现类，AIPatchApplier 是空壳。
-
-### 3.1 AI 插件实现
-- [ ] 3.1.1 创建 `ai/ClaudePlugin.kt` — 对接 Claude API 的 AIPlugin 实现
-  - 支持通过 HTTP 调用 Claude API
-  - 处理 prompt 构建、response 解析
-  - 支持配置 API Key（通过 TestConfig 或环境变量）
-- [ ] 3.1.2 创建 `ai/LocalLLMPlugin.kt` — 本地/自定义 LLM 的 AIPlugin 实现（可选）
-- [ ] 3.1.3 完善 `AIPatchApplier` — 实现真正的代码 patch 应用逻辑
-  - 解析 diff 格式
-  - 应用到目标文件
-  - 回滚能力
-
-### 3.2 AI 驱动的测试生成
-- [ ] 3.2.1 实现 `ai/TestGenerator.kt` — 根据页面结构/截图生成测试用例
-  - 输入：Activity 类名 + 布局 XML / View 层级 dump
-  - 输出：可执行的 Kotlin 测试代码
-- [ ] 3.2.2 实现 `ai/TestDataGenerator.kt` — AI 生成测试数据
-  - 支持边界值、异常值、国际化数据
-
-### 3.3 AI 自动修复 Flaky
-- [ ] 3.3.1 实现 `ai/FlakyFixer.kt` — 分析 Flaky 失败日志，生成修复补丁
-  - 常见修复：增加等待、调整选择器、处理弹窗
-  - 生成 patch 后走风险评估流程
-- [ ] 3.3.2 FlakyFixer 与 RetryRunner 联动 — 重试仍失败时触发 AI 分析
-
-### 3.4 风险门控完善
-- [ ] 3.4.1 扩展 RiskLevel 为三级：L0（只读/分析）、L1（低风险自动）、L2（需审批）
-- [ ] 3.4.2 完善 RiskEvaluator 规则 — 基于变更类型、影响范围评估
-- [ ] 3.4.3 实现审批回调机制 — 支持 CLI 交互 / 飞书通知 / CI 手动审批
+- [x] 2.1 删除 ai/ 和 risk/ 空壳模块（方向调整为 Claude Code + mobile-mcp）
+- [x] 2.2 修复 ReportCollector 全局单例状态污染 → 每次测试新建实例
+- [x] 2.3 修复 DeviceSelector.getSerial() 在 API 26+ 崩溃
+- [x] 2.4 ScreenshotRule 接入 BaseUiTest 基类
+- [x] 2.5 报告文件名加时间戳，防覆盖
+- [x] 2.6 build.gradle 依赖拆分（api vs implementation）
+- [x] 2.7 创建 CLAUDE.md（mobile-mcp 测试指南）
 
 ---
 
-## 阶段 4：CI 与多设备
+## 阶段 3：debox 落地（CI 回归测试）
 
-### 4.1 CI 集成模板
-- [ ] 4.1.1 创建 `.circleci/test-config.yml` — CircleCI 自动化测试 job
-  - 模拟器启动 + 等待就绪
-  - 执行 connectedAndroidTest
-  - 收集报告和截图
-  - 失败通知（飞书 Webhook）
-- [ ] 4.1.2 创建 GitHub Actions workflow（备选方案）
-- [ ] 4.1.3 集成到 debox-android 的 CI pipeline
+### 3.1 接入框架
+- [ ] 3.1.1 debox 根 build.gradle 添加 `mavenLocal()`
+- [ ] 3.1.2 app/build.gradle 添加 `androidTestImplementation 'com.autotest:autotest:1.0.0'`
+- [ ] 3.1.3 创建 test-config.properties（包名、超时、Tab、截图目录）
 
-### 4.2 多设备支持
-- [ ] 4.2.1 完善 DeviceSelector — 支持指定设备 serial、优先物理机、并发分配
-- [ ] 4.2.2 创建 `runner/ParallelRunner.kt` — 多设备并行执行测试
-  - 设备发现 + 任务分片
-  - 结果合并到统一报告
-- [ ] 4.2.3 创建 `runner/EmulatorManager.kt` — 自动创建/启动/销毁模拟器（CI 用）
+### 3.2 迁移现有测试
+- [ ] 3.2.1 AppLaunchTest 从 Kaspresso → autotest
+- [ ] 3.2.2 NavigationTest 从 Kaspresso → autotest
+- [ ] 3.2.3 MainScreen / LaunchAppScenario → autotest DSL
 
-### 4.3 报告增强
-- [ ] 4.3.1 创建 `report/AllureBridge.kt` — 可选的 Allure 报告适配
-- [ ] 4.3.2 创建 `report/HtmlReporter.kt` — 独立的 HTML 报告生成（不依赖 Gradle）
-- [ ] 4.3.3 报告推送 — 支持上传到 OSS / 发送飞书消息
+### 3.3 DeBox 适配层
+- [ ] 3.3.1 DeboxActions（登录流程、引导页/升级弹窗、ARouter 跳转）
+- [ ] 3.3.2 DeboxAssertions（登录状态、钱包连接验证）
+
+### 3.4 核心用例（12 个）
+- [ ] 冷启动 / 权限弹窗 / Tab 切换
+- [ ] 手机号登录 / 钱包登录 / 退出登录
+- [ ] 首页信息流 / 社区帖子 / 钱包页面 / 设置导航
+- [ ] 升级弹窗 / 网络异常恢复
+
+### 3.5 验收
+- [ ] 真机 12 用例全部通过，Flaky 率 < 5%
 
 ---
 
-## 阶段 5：debox 项目落地
+## 阶段 4：Claude Code + mobile-mcp 交互式测试
 
-> debox-android 信息：
-> - 包名：`com.tm.security.wallet`
-> - 最小 SDK：25，目标 SDK：34
-> - 架构：多模块（app/business/im/public/wallet）+ ARouter 路由
-> - UI：XML Layout + ViewBinding
-> - 已有测试：AppLaunchTest、NavigationTest（基于 Kaspresso）
-> - CI：CircleCI + GitHub Actions
+> 核心思路：你用自然语言下指令，Claude Code 通过 mobile-mcp 操控真机测试。
 
-### 5.1 接入框架
-- [ ] 5.1.1 在 debox-android 的根 build.gradle 添加 `mavenLocal()`
-- [ ] 5.1.2 在 app/build.gradle 添加 `androidTestImplementation 'com.autotest:autotest:1.0.0'`
-- [ ] 5.1.3 创建 `app/src/androidTest/assets/test-config.properties`
-  ```properties
-  app.packageName=com.tm.security.wallet
-  app.launchTimeout=20000
-  app.maxLaunchTime=15000
-  app.bottomTabs=首页,社区,发现,我的
-  app.screenshotDir=/sdcard/Pictures/debox-autotest
-  app.screenshotOnFailure=true
-  ```
+### 4.1 环境搭建
+- [ ] 4.1.1 确认 mobile-mcp 连接真机/模拟器稳定
+- [ ] 4.1.2 完善 CLAUDE.md 中 DeBox 页面结构描述（各页面元素 ID/文本）
 
-### 5.2 迁移现有测试
-- [ ] 5.2.1 将 AppLaunchTest 从 Kaspresso 迁移到 autotest 框架
-  - 保持用例逻辑不变，替换基类和 API
-- [ ] 5.2.2 将 NavigationTest 迁移到 autotest 框架
-- [ ] 5.2.3 迁移 MainScreen（Page Object）→ 使用 autotest 的 Espresso/UiAutomator 扩展
-- [ ] 5.2.4 迁移 LaunchAppScenario → 使用 autotest 的 scenario DSL
+### 4.2 测试场景模板
+- [ ] 4.2.1 冒烟测试模板（启动 → Tab 遍历 → 截图验证）
+- [ ] 4.2.2 登录流程模板（手机号 / 钱包登录）
+- [ ] 4.2.3 探索性测试模板（AI 自主浏览页面，发现异常）
 
-### 5.3 debox 专属适配层
-- [ ] 5.3.1 创建 `debox/DeboxConfig.kt` — debox 特有配置（登录账号、环境切换）
-- [ ] 5.3.2 创建 `debox/DeboxActions.kt` — debox 特有操作
-  - 登录流程（手机号/钱包登录）
-  - 引导页/升级弹窗处理
-  - ARouter 页面跳转辅助
-- [ ] 5.3.3 创建 `debox/DeboxAssertions.kt` — debox 特有断言
-  - 登录状态验证
-  - 钱包连接状态验证
+### 4.3 结果固化
+- [ ] 4.3.1 AI 测试发现 bug → 自动生成 autotest 用例代码 → 加入 CI 回归
+- [ ] 4.3.2 截图基线管理 — 保存正常截图，后续对比变化
 
-### 5.4 核心路径用例（10+ 个）
-- [ ] 5.4.1 冷启动测试 — 启动时间 < 15 秒
-- [ ] 5.4.2 启动 + 权限弹窗处理
-- [ ] 5.4.3 底部 Tab 切换 — 首页/社区/发现/我的
-- [ ] 5.4.4 登录流程 — 手机号登录
-- [ ] 5.4.5 登录流程 — 钱包连接登录
-- [ ] 5.4.6 首页信息流滑动 + 加载
-- [ ] 5.4.7 社区帖子浏览 + 评论
-- [ ] 5.4.8 钱包页面基础操作
-- [ ] 5.4.9 个人设置页导航
-- [ ] 5.4.10 退出登录
-- [ ] 5.4.11 升级弹窗处理
-- [ ] 5.4.12 网络异常恢复
+---
 
-### 5.5 验收
-- [ ] 5.5.1 12 个核心用例在真机上全部通过
-- [ ] 5.5.2 Flaky 率 < 5%（RetryRunner 重试后）
-- [ ] 5.5.3 CI 模拟器上稳定执行
-- [ ] 5.5.4 JSON 报告正确输出（含设备信息、步骤结果、失败分类）
+## 阶段 5：CI 集成
+
+- [ ] 5.1 CircleCI 自动化测试 Job（模拟器 + 执行 + 报告 + 飞书通知）
+- [ ] 5.2 集成到 debox-android CI pipeline
+- [ ] 5.3 报告推送（OSS 上传 + 飞书消息）
+- [ ] 5.4 CI 模拟器验收
 
 ---
 
 ## 阶段 6：持续扩展（长期）
 
-### 6.1 框架增强
-- [ ] 6.1.1 Page Object 生成器 — 根据布局 XML 自动生成 Page Object 类
-- [ ] 6.1.2 测试录制器 — 录制操作并生成 scenario DSL 代码
-- [ ] 6.1.3 性能测试模块 — 启动时间、帧率、内存、电量
-- [ ] 6.1.4 无障碍测试 — 自动检查 contentDescription、对比度
-- [ ] 6.1.5 国际化测试 — 多语言截图对比
-
-### 6.2 AI 能力迭代
-- [ ] 6.2.1 视觉回归测试 — AI 对比截图差异，智能判定是否为 bug
-- [ ] 6.2.2 自愈测试 — 元素选择器失效时 AI 自动寻找替代选择器
-- [ ] 6.2.3 测试覆盖分析 — AI 分析代码变更，推荐需要运行的测试
-- [ ] 6.2.4 自然语言测试 — 用中文描述测试步骤，AI 转换为可执行代码
-
-### 6.3 多项目复用
-- [ ] 6.3.1 accesscontrolterminal 项目接入
-- [ ] 6.3.2 提取通用 App 适配模板（登录、导航、权限等）
-- [ ] 6.3.3 发布到私有 Maven 仓库（替代 mavenLocal）
-- [ ] 6.3.4 版本管理与兼容性矩阵
+- [ ] 6.1 性能测试模块（启动时间、帧率、内存）
+- [ ] 6.2 多设备并行执行（ParallelRunner）
+- [ ] 6.3 accesscontrolterminal 项目接入
+- [ ] 6.4 私有 Maven 仓库发布
+- [ ] 6.5 HTML 报告生成器
 
 ---
 
-## 当前进度总结
+## 两条测试路线对比
 
-| 阶段 | 进度 | 说明 |
+| | CI 自动化回归（autotest 框架） | AI 交互式测试（Claude Code + mobile-mcp） |
 |---|---|---|
-| 阶段 1: 框架基础 | 100% | 13 项全部完成 |
-| 阶段 2: 稳定性治理 | 100% | 5 项全部完成 |
-| 阶段 3: AI 能力落地 | 20% | 接口骨架完成，实现类未写 |
-| 阶段 4: CI 与多设备 | 0% | 未开始 |
-| 阶段 5: debox 落地 | 10% | 依赖已加，测试基础存在但未迁移 |
-| 阶段 6: 持续扩展 | 0% | 长期目标 |
+| 触发方式 | 每次发版自动运行 | 你随时对话触发 |
+| 测试内容 | 固定的 12+ 核心用例 | 灵活探索，任意场景 |
+| 执行速度 | 快（脚本直接跑） | 慢（截图分析 + 交互） |
+| 适合场景 | 回归保护，防止已知功能破坏 | 新功能探索，发现未知 bug |
+| AI 角色 | 无 | Claude Code 是大脑 |
+| 闭环 | 失败 → 通知 → 人工修 | 发现 bug → 生成 autotest 用例 → 加入 CI |
 
 ## 建议执行顺序
 
 ```
-推荐先做阶段 5（debox 落地）→ 再补阶段 3（AI）→ 最后做阶段 4（CI）
+阶段 3（debox CI 落地）→ 阶段 4（mobile-mcp 交互式）→ 阶段 5（CI 集成）
 
 理由：
-1. 先在真实项目上跑通，验证框架可用性
-2. 在真实用例基础上做 AI 能力更有价值
-3. CI 集成最后做，确保本地稳定后再上线
+1. 先把 CI 回归跑通，保护核心路径
+2. 再用 Claude Code 做探索性测试，发现更多问题
+3. AI 发现的 bug 固化为 autotest 用例，持续壮大 CI 用例库
 ```

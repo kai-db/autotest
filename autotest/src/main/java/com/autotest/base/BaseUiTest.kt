@@ -2,7 +2,6 @@ package com.autotest.base
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.IdlingRegistry
@@ -11,11 +10,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
-import com.autotest.report.ReportCollectorHolder
+import com.autotest.report.ReportCollector
 import com.autotest.report.ReportWriter
 import com.autotest.runner.RunnerInfo
-import com.autotest.stability.FlakyClassifier
-import com.autotest.stability.RetryPolicy
+import com.autotest.util.ScreenshotRule
 import com.autotest.util.allowPermission
 import com.autotest.util.waitForApp
 import org.junit.After
@@ -23,6 +21,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.runner.RunWith
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * UI 自动化测试基类，整合 Espresso + UiAutomator。
@@ -37,12 +38,14 @@ abstract class BaseUiTest {
     val idlingResource = CountingIdlingResource("BaseUiTest")
 
     @get:Rule
-    val reportCollector = ReportCollectorHolder.shared
+    val reportCollector = ReportCollector()
+
+    @get:Rule(order = Int.MAX_VALUE)
+    val screenshotRule = ScreenshotRule()
 
     @Before
     open fun setUp() {
         TestConfig.init()
-        reportCollector.setStability(RetryPolicy(), FlakyClassifier)
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         context = ApplicationProvider.getApplicationContext()
         IdlingRegistry.getInstance().register(idlingResource)
@@ -61,7 +64,8 @@ abstract class BaseUiTest {
                 device = runnerInfo.deviceName,
                 runnerInfo = runnerInfo
             )
-            val reportFile = File(TestConfig.screenshotDir, "report.json")
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val reportFile = File(TestConfig.screenshotDir, "report_$timestamp.json")
             ReportWriter.write(report, reportFile)
         }
     }

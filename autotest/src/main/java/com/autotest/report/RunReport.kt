@@ -17,8 +17,7 @@ data class Failure(
     val methodName: String,
     val message: String,
     val screenshots: List<String>? = null,
-    val flakyType: com.autotest.stability.FlakyType? = null,
-    val retryPolicy: com.autotest.stability.RetryPolicy? = null
+    val flakyType: com.autotest.stability.FlakyType? = null
 )
 
 data class StepResult(

@@ -283,35 +283,6 @@ val policy = WaitPolicy(timeoutMs = 10000, intervalMs = 500)
 
 ---
 
-## AI 插件接口
-
-框架提供 `AIPlugin` 接口，支持接入 AI 能力：
-
-```kotlin
-interface AIPlugin {
-    fun generateTests(prompt: String): AIResult    // AI 生成测试用例
-    fun fixFlaky(report: String): AIResult         // AI 修复 Flaky 测试
-    fun generateData(schema: String): AIResult     // AI 生成测试数据
-    fun summarizeRun(runLog: String): AIResult      // AI 总结运行结果
-}
-```
-
-### 风险门控
-
-AI 生成的变更通过 `RiskEvaluator` 评估风险等级：
-- **L1（低风险）**：如添加等待时间，自动应用
-- **L2（高风险）**：需要人工审批
-
-```kotlin
-val risk = RiskEvaluator.evaluate(changeSummary)
-val shouldApply = ApprovalGate.shouldApply(risk, changeSummary) { level, summary ->
-    // 人工审批回调
-    showApprovalDialog(level, summary)
-}
-```
-
----
-
 ## 设备信息与 Runner
 
 `RunnerInfo` 自动收集运行环境信息并嵌入报告：

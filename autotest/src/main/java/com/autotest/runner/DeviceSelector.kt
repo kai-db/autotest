@@ -14,9 +14,10 @@ object DeviceSelector {
         return UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     }
 
-    @Suppress("DEPRECATION")
-    fun getSerial(): String {
-        return android.os.Build.SERIAL.takeIf { it != "unknown" }
-            ?: android.os.Build.getSerial()
+    fun getSerial(): String = try {
+        @Suppress("DEPRECATION")
+        android.os.Build.SERIAL.takeIf { it != "unknown" } ?: "unknown"
+    } catch (_: SecurityException) {
+        "unknown"
     }
 }
