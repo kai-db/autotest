@@ -11,6 +11,7 @@ com.autotest
 ├── action/        AppActions（通用操作：Tab 切换、引导页跳过）
 ├── assertion/     AppAssertions（通用断言：前台、文本、控件）
 ├── dsl/           Scenario + Step（DSL：编号/条件/重试/恢复/循环）
+├── engine/        TestRunner + TestSuite（执行引擎：生命周期编排+批量执行）
 ├── intercept/     Interceptor + InterceptorChain（拦截器：日志/截图/性能）
 ├── lifecycle/     TestLifecycleHook + Manager（测试生命周期钩子）
 ├── log/           TestLogger + DefaultTestLogger（统一日志：分级+文件+Logcat）
