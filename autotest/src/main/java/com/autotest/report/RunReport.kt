@@ -12,5 +12,7 @@ data class Failure(
     val className: String,
     val methodName: String,
     val message: String,
-    val screenshots: List<String>? = null
+    val screenshots: List<String>? = null,
+    val flakyType: com.autotest.stability.FlakyType? = null,
+    val retryPolicy: com.autotest.stability.RetryPolicy? = null
 )

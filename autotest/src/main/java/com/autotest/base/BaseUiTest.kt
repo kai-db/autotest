@@ -13,6 +13,8 @@ import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
 import com.autotest.report.ReportCollectorHolder
 import com.autotest.report.ReportWriter
+import com.autotest.stability.FlakyClassifier
+import com.autotest.stability.RetryPolicy
 import com.autotest.util.allowPermission
 import com.autotest.util.waitForApp
 import org.junit.After
@@ -39,6 +41,7 @@ abstract class BaseUiTest {
     @Before
     open fun setUp() {
         TestConfig.init()
+        reportCollector.setStability(RetryPolicy(), FlakyClassifier)
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         context = ApplicationProvider.getApplicationContext()
         IdlingRegistry.getInstance().register(idlingResource)
