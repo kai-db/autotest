@@ -2,6 +2,7 @@ package com.autotest.base
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.IdlingRegistry
@@ -10,7 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
-import com.autotest.report.ReportCollector
+import com.autotest.report.ReportCollectorHolder
 import com.autotest.report.ReportWriter
 import com.autotest.util.allowPermission
 import com.autotest.util.waitForApp
@@ -33,7 +34,7 @@ abstract class BaseUiTest {
     val idlingResource = CountingIdlingResource("BaseUiTest")
 
     @get:Rule
-    val reportCollector = ReportCollector()
+    val reportCollector = ReportCollectorHolder.shared
 
     @Before
     open fun setUp() {
@@ -49,10 +50,11 @@ abstract class BaseUiTest {
         try {
             Espresso.onIdle()
         } finally {
+            val deviceInfo = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
             val report = reportCollector.buildReport(
                 appPackage = TestConfig.packageName,
                 endTime = System.currentTimeMillis(),
-                device = null
+                device = deviceInfo
             )
             val reportFile = File(TestConfig.screenshotDir, "report.json")
             ReportWriter.write(report, reportFile)

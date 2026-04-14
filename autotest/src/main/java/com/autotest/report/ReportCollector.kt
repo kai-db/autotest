@@ -40,3 +40,7 @@ class ReportCollector : TestWatcher() {
         )
     }
 }
+
+object ReportCollectorHolder {
+    val shared = ReportCollector()
+}
