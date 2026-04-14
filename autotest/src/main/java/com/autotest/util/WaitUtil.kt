@@ -20,7 +20,12 @@ object WaitUtil {
         }
     }
 
-    /** 轮询等待条件满足 */
+    /**
+     * 轮询等待条件满足。
+     * 注意：此方法使用 Thread.sleep 轮询，适合在 Instrumentation 线程上调用。
+     * 不要在 condition 中执行需要主线程空闲的 Espresso 操作，否则可能死锁。
+     * Espresso 内的等待请使用 waitFor() + onView(isRoot()).perform(...)。
+     */
     fun waitUntil(
         timeoutMillis: Long = 10000,
         intervalMillis: Long = 500,

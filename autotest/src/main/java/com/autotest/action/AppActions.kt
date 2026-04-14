@@ -15,25 +15,25 @@ object AppActions {
     fun switchBottomTabs(
         device: UiDevice,
         tabs: List<String> = TestConfig.bottomTabs,
+        settleTime: Long = TestConfig.getLong("app.tabSettleTime", 1500),
         onTab: ((String) -> Unit)? = null
     ) {
         for (tab in tabs) {
             device.clickText(tab)
-            Thread.sleep(1000)
+            device.waitForIdle(settleTime)
             onTab?.invoke(tab)
         }
     }
 
     /** 等待引导页/闪屏消失 */
     fun waitForSplashDismiss(device: UiDevice, timeout: Long = 10000) {
-        val skipTexts = listOf("跳过", "Skip", "进入", "Enter")
+        val skipTexts = listOf("跳过", "Skip", "进入", "Enter", "稍后再说")
         for (text in skipTexts) {
             if (device.waitForText(text, 2000)) {
                 device.clickText(text)
                 return
             }
         }
-        // 没找到跳过按钮，等待超时自动消失
-        Thread.sleep(timeout.coerceAtMost(5000))
+        device.waitForIdle(timeout.coerceAtMost(5000))
     }
 }

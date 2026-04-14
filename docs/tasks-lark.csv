@@ -1,14 +1,14 @@
 分组,任务名称,描述,状态,优先级
 【Android】AutoTest 框架与 DeBox 落地,,,,
-  【S1】测试框架核心。BaseUiTest + Espresso/UiAutomator扩展 + 分层配置 + JSON报告 + DSL步骤层 + 设备信息,已完成,P0
-  【S1】稳定性治理。FlakyClassifier失败分类 + RetryRunner自动重试 + 单元测试覆盖,已完成,P0
-  【S1】代码质量优化。删除ai/risk空壳 + 修复全局状态污染 + 修复API26+崩溃 + 依赖拆分 + ScreenshotRule接入基类,已完成,P0
-  【S1】文档体系。01-架构设计 + 02-技术方案 + 03-可行性评估 + 04-开发计划 + 05-AI测试手册 + CLAUDE.md,已完成,P0
-  【S2】debox 框架接入。添加依赖 + test-config配置 + Kaspresso现有用例迁移到autotest,未开始,P0
-  【S2】debox 适配层。DeboxActions(登录/弹窗/路由) + DeboxAssertions(登录/钱包状态验证),未开始,P0
-  【S2】debox 核心用例。冷启动 + Tab导航 + 手机号/钱包登录 + 信息流 + 社区 + 钱包 + 退出登录等12个用例,未开始,P0
-  【S2】debox 落地验收。真机12用例全部通过 + Flaky率<5% + JSON报告验证,未开始,P0
-  【S3】AI监工环境搭建。mobile-mcp连接验证 + TEST_CASES.md编写 + 截图/元素识别能力确认,未开始,P0
-  【S3】AI监工闭环跑通。Phase1-6完整执行 + 迭代修复 + 最终验收 + bug固化为autotest用例,未开始,P0
-  【S4】CI 集成。CircleCI测试Job + 集成debox流水线 + 报告推送(OSS+飞书),未开始,P1
-  【S5】持续扩展。性能测试 + 多设备并行 + 多项目复用 + 私有Maven发布,未开始,P3
+  【S1】测试框架核心。BaseUiTest + Espresso/UiAutomator扩展 + 分层配置 + JSON报告 + DSL步骤层 + 设备信息
+  【S1】稳定性治理。FlakyClassifier失败分类 + RetryRunner自动重试 + 单元测试覆盖
+  【S1】代码质量优化。删除ai/risk空壳 + 修复全局状态污染 + 修复API26+崩溃 + 依赖拆分 + ScreenshotRule接入基类
+  【S1】文档体系。01-架构设计 + 02-技术方案 + 03-可行性评估 + 04-开发计划 + 05-AI测试手册 + CLAUDE.md
+  【S2】debox 框架接入。添加依赖 + test-config配置 + Kaspresso现有用例迁移到autotest,未开始
+  【S2】debox 适配层。DeboxActions(登录/弹窗/路由) + DeboxAssertions(登录/钱包状态验证),未开始
+  【S2】debox 核心用例。冷启动 + Tab导航 + 手机号/钱包登录 + 信息流 + 社区 + 钱包 + 退出登录等12个用例,未开始
+  【S2】debox 落地验收。真机12用例全部通过 + Flaky率<5% + JSON报告验证,未开始
+  【S3】AI监工环境搭建。mobile-mcp连接验证 + TEST_CASES.md编写 + 截图/元素识别能力确认,未开始
+  【S3】AI监工闭环跑通。Phase1-6完整执行 + 迭代修复 + 最终验收 + bug固化为autotest用例,未开始
+  【S4】CI 集成。CircleCI测试Job + 集成debox流水线 + 报告推送(OSS+飞书),未开始
+  【S5】持续扩展。性能测试 + 多设备并行 + 多项目复用 + 私有Maven发布,未开始
