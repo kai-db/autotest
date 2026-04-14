@@ -1,9 +1,10 @@
 分组,任务名称,描述,状态,优先级
 【Android】AutoTest 框架与 DeBox 测试,,,,
-  【S1】测试框架核心。BaseUiTest + Espresso/UiAutomator扩展 + 分层配置 + JSON报告 + DSL步骤层 + 设备信息,已完成,P0
-  【S1】稳定性治理。FlakyClassifier失败分类 + RetryRunner自动重试 + 17条单元测试覆盖,已完成,P0
-  【S1】代码质量优化。删除ai/risk空壳 + 修复P0/P1问题 + 依赖拆分 + ScreenshotRule接入基类,已完成,P0
-  【S1】文档体系。01-架构设计 + 02-技术方案 + 03-可行性评估 + 04-开发计划 + 05-AI测试手册 + CLAUDE.md,已完成,P0
+  【S1】测试框架核心。BaseUiTest + TestCase声明式API + Espresso/UiAutomator扩展 + 分层配置 + JSON/HTML报告 + DSL + 设备信息,已完成,P0
+  【S1】稳定性治理。FlakyClassifier(17关键词) + RetryRunner + flakySafely代码块重试 + 85条单元测试,已完成,P0
+  【S1】拦截器+引擎。InterceptorChain(弹窗/日志/截图/性能/Logcat) + TestRunner + TestSuite + MonitorMode + TestCaseParser,已完成,P0
+  【S1】设备能力+数据。DeviceActions(网络/权限/屏幕/App/Logcat) + 多环境配置 + TestDataManager + BaseScenario复用,已完成,P0
+  【S1】文档+质量。架构/技术方案/可行性/开发计划/AI测试手册 + 代码审查5项P0/P1修复 + CHANGELOG,已完成,P0
   【S2】DeBox 冒烟用例。启动App + 弹窗处理 + 消息/朋友/发现/我的 Tab遍历 + 截图验证,未开始,P0
   【S2】DeBox 功能用例。聊天列表 + 群聊 + 朋友/AI助手 + 发现 + 个人信息/设置,未开始,P0
   【S2】AI监工执行。全量执行DeBox用例 + TEST_RESULTS.md + 截图证据,未开始,P0
