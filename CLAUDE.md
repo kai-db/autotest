@@ -24,48 +24,59 @@ com.autotest
 ./gradlew :autotest:test                  # 运行单元测试
 ```
 
-## 使用 mobile-mcp 交互式测试 DeBox
+## 铁律
 
-当用户要求测试 DeBox App 时，使用 mobile-mcp 工具连接真机/模拟器。
+1. **AI 驱动自动化测试** — 全程自主执行，不等人指示每一步
+2. **拿到测试用例后 AI 实现逻辑进行测试** — `TEST_CASES.md` 是唯一用例来源
+3. **AI 自动开启监工模式** — 迭代修复循环，直到 0 个 FAIL
 
-### DeBox 基本信息
+详细流程见 `docs/ai-testing-guide.md`（第 7 节：监工模式）。
 
-- 包名：`com.tm.security.wallet`
-- 启动 Activity：SplashActivity
-- 底部 Tab：首页、社区、发现、我的
-- 登录方式：手机号验证码、钱包连接
+## 使用 mobile-mcp 测试
 
-### 测试流程
+当用户要求测试 App 时，使用 mobile-mcp 工具连接真机/模拟器。
 
-1. **确认设备连接**：`mobile_list_available_devices` 检查设备
-2. **启动 App**：`mobile_launch_app` 包名 `com.tm.security.wallet`
-3. **截图观察**：`mobile_take_screenshot` 查看当前页面
-4. **列出元素**：`mobile_list_elements_on_screen` 获取可交互元素
-5. **执行操作**：`mobile_click_on_screen_at_coordinates` / `mobile_type_keys` / `mobile_swipe_on_screen`
-6. **验证结果**：再次截图确认操作是否成功
+### App 信息
 
-### 常见测试场景
+| App | 包名 | 底部 Tab |
+|---|---|---|
+| DeBox | `com.tm.security.wallet` | 首页、社区、发现、我的 |
+| 门禁终端 | `io.xcc.access` | - |
 
-**冷启动测试**
-1. `mobile_launch_app` 启动 DeBox
-2. 等待 2-3 秒
-3. `mobile_take_screenshot` 确认到达首页
-4. 如遇权限弹窗，`mobile_list_elements_on_screen` 找到"允许"按钮并点击
+### 测试前检查
 
-**Tab 导航测试**
-1. 启动 App 后截图确认在首页
-2. 依次点击底部 Tab（社区、发现、我的）
-3. 每次切换后截图验证页面内容
+```
+1. mobile_list_available_devices  → 确认设备在线
+2. mobile_take_screenshot         → 查看当前状态
+3. mobile_launch_app              → 启动目标 App
+```
 
-**登录测试**
-1. 进入"我的" Tab
-2. 点击登录入口
-3. 输入手机号 → 获取验证码 → 输入验证码
-4. 截图验证登录成功
+### 操作铁律
 
-### 注意事项
+- **每步操作后必须截图**确认状态
+- **操作前先 list_elements**找坐标，不要盲猜
+- **遇到弹窗先处理弹窗**
+- **每条用例重置环境**（terminate → launch）
+- **回归必须全量跑**，不能只跑失败的
+- **验证必须有截图证据**
 
-- 每步操作后先 `mobile_take_screenshot` 确认状态再继续
-- 遇到弹窗/对话框时先 `mobile_list_elements_on_screen` 识别后再操作
-- 滑动操作用 `mobile_swipe_on_screen`，注意方向参数
-- 操作失败时重新截图分析原因，不要盲目重试
+### 监工模式流程
+
+```
+Phase 1: 编译部署（gradlew assembleDebug → install → 启动确认）
+Phase 2: 全量测试（按 P0→P1→P2 遍历 TEST_CASES.md，每条重置+验证）
+Phase 3: 更新文档（结果写入 TEST_RESULTS.md）
+Phase 4: 全部修复（分析根因 → 修复代码 → 记录修复）
+Phase 5: 回归测试（重新编译 → 全量重跑）
+  └── 仍有 FAIL → 回到 Phase 3
+  └── 全部 PASS → Phase 6 最终验收
+Phase 6: 全量验收（不改代码，完整跑一遍，全 PASS → 结束）
+```
+
+### 文件约定
+
+| 文件 | 用途 |
+|---|---|
+| `TEST_CASES.md` | 用例定义（步骤+验证标准+优先级） |
+| `TEST_RESULTS.md` | 每轮结果（PASS/FAIL+截图+修复记录） |
+| `screenshots/` | 测试截图 |
