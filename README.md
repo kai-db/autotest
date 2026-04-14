@@ -2,7 +2,7 @@
 
 可复用的 Android 自动化测试框架，基于 **Espresso + UiAutomator**，配合 **Claude Code + mobile-mcp** 实现 AI 驱动的测试。
 
-**v1.4.0** | 15 个模块 | 74 条单元测试 | 145.9K AAR
+**v1.5.0** | 15 个模块 | 74 条单元测试 | 145.9K AAR
 
 ---
 
@@ -23,7 +23,7 @@ cd autotest
 allprojects { repositories { mavenLocal() } }
 
 // app/build.gradle
-androidTestImplementation 'com.autotest:autotest:1.4.0'
+androidTestImplementation 'com.autotest:autotest:1.5.0'
 ```
 
 ---
@@ -89,7 +89,33 @@ val account = TestDataManager.getAccount()
 
 ---
 
-## DSL 写测试
+## 写测试
+
+### 方式一：TestCase 声明式 API（推荐）
+
+```kotlin
+class LoginTest : TestCase() {
+
+    @Test
+    fun testLogin() = execute(
+        before = { launchAppAndDismissDialogs() },
+        after = { pressHome() }
+    ) {
+        step("进入登录页") { device.clickText("登录") }
+        step("输入账号") { viewById(R.id.et_phone).typeText("138...") }
+        flakyStep("点击登录", maxRetries = 2) {
+            viewById(R.id.btn_login).click()
+        }
+        step("验证成功") {
+            flakySafely(timeoutMs = 5000) {
+                AppAssertions.assertTextVisible(device, "首页")
+            }
+        }
+    }
+}
+```
+
+### 方式二：继承 BaseUiTest + scenario DSL
 
 ```kotlin
 class LoginTest : BaseUiTest() {
@@ -97,21 +123,9 @@ class LoginTest : BaseUiTest() {
     @Test
     fun testLogin() {
         val s = scenario("登录流程", reportCollector, interceptors) {
-            step("启动App") {
-                launchAppAndDismissDialogs()
-            }
-            step("进入登录页") {
-                device.clickText("登录")
-            }
-            stepIf(needsInput, "输入账号") {
-                viewById(R.id.et_phone).typeText("138...")
-            }
-            flakyStep("点击登录", maxRetries = 2) {
-                viewById(R.id.btn_login).click()
-            }
-            step("验证成功") {
-                AppAssertions.assertTextVisible(device, "首页")
-            }
+            step("启动App") { launchAppAndDismissDialogs() }
+            step("进入登录页") { device.clickText("登录") }
+            step("验证成功") { AppAssertions.assertTextVisible(device, "首页") }
         }
         s.run()
     }
@@ -227,14 +241,37 @@ interceptors.add(object : Interceptor {
 
 ## 稳定性
 
+### Flaky 分类
+
 ```kotlin
-// Flaky 分类
 FlakyClassifier.classify("Timeout...") // → FLAKY（可重试）
 FlakyClassifier.classify("Not found")  // → HARD_FAIL（直接失败）
+```
 
-// 自动重试 Rule
+### RetryRunner — 测试方法级重试
+
+```kotlin
 @get:Rule
 val retryRule = RetryRunner(RetryPolicy(maxRetries = 2, intervalMs = 1000))
+```
+
+### flakySafely — 代码块级重试（推荐）
+
+```kotlin
+// 对不稳定的操作包一层自动重试
+step("验证元素") {
+    flakySafely(timeoutMs = 5000) {
+        viewByText("首页").isDisplayed()
+    }
+}
+
+// 支持自定义允许重试的异常类型
+flakySafely(
+    timeoutMs = 10000,
+    allowedExceptions = setOf(AssertionError::class.java)
+) {
+    device.findObject(By.text("加载完成")) ?: throw AssertionError("未找到")
+}
 ```
 
 ---
@@ -282,4 +319,4 @@ val retryRule = RetryRunner(RetryPolicy(maxRetries = 2, intervalMs = 1000))
 
 ## 版本
 
-当前版本 `1.4.0`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
+当前版本 `1.5.0`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。

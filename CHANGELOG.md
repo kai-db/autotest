@@ -2,6 +2,21 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.5.0] - 2026-04-14
+
+### Added
+- **TestCase** (`base/TestCase.kt`)：声明式测试基类（参考 Kaspresso TestCase）
+  - `execute(before, after) { step {} }` 四段式 API
+- **flakySafely** (`stability/FlakySafely.kt`)：代码块级别自动重试（参考 Kaspresso flakySafely）
+  - 支持超时、间隔、允许异常类型、自定义失败消息
+  - 与 RetryRunner 区别：RetryRunner 重试整个方法，flakySafely 只重试指定代码块
+
+### Changed
+- **TestConfig.packageName**：为空时抛 IllegalArgumentException 并给出明确提示
+
+### Stats
+- 79 条单元测试 / 19 个测试文件
+
 ## [1.4.0] - 2026-04-14
 
 ### Added

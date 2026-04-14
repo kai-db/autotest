@@ -6,7 +6,7 @@ plugins {
 
 def LIB_GROUP = "com.autotest"
 def LIB_ARTIFACT = "autotest"
-def LIB_VERSION = "1.4.0"
+def LIB_VERSION = "1.5.0"
 
 android {
     compileSdk 35
