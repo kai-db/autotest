@@ -10,8 +10,11 @@ com.autotest
 ├── config/        TestConfig + ConfigLoader（分层配置）
 ├── action/        AppActions（通用操作：Tab 切换、引导页跳过）
 ├── assertion/     AppAssertions（通用断言：前台、文本、控件）
-├── dsl/           Scenario + Step（DSL 步骤层）
-├── report/        RunReport + ReportWriter + ReportCollector（JSON 报告）
+├── dsl/           Scenario + Step（DSL：编号/条件/重试/恢复/循环）
+├── intercept/     Interceptor + InterceptorChain（拦截器：日志/截图/性能）
+├── lifecycle/     TestLifecycleHook + Manager（测试生命周期钩子）
+├── log/           TestLogger + DefaultTestLogger（统一日志：分级+文件+Logcat）
+├── report/        RunReport + ReportWriter + ReportSummary（报告+摘要统计）
 ├── runner/        RunnerInfo + DeviceSelector（设备信息）
 ├── stability/     FlakyClassifier + RetryRunner + RetryPolicy（稳定性治理）
 └── util/          EspressoExt + UiAutomatorExt + WaitUtil + ScreenshotRule

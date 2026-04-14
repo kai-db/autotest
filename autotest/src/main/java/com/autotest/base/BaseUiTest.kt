@@ -13,6 +13,7 @@ import com.autotest.config.TestConfig
 import com.autotest.intercept.InterceptorChain
 import com.autotest.intercept.LoggingInterceptor
 import com.autotest.intercept.ScreenshotInterceptor
+import com.autotest.lifecycle.TestLifecycleManager
 import com.autotest.log.DefaultTestLogger
 import com.autotest.log.TestLogger
 import com.autotest.report.ReportCollector
@@ -43,6 +44,7 @@ abstract class BaseUiTest {
 
     val idlingResource = CountingIdlingResource("BaseUiTest")
     val interceptors = InterceptorChain()
+    val lifecycle = TestLifecycleManager()
 
     @get:Rule
     val reportCollector = ReportCollector()
