@@ -2,6 +2,18 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.2.0] - 2026-04-14
+
+### Added
+- **环境配置管理** (`config/Environment.kt`)：TestEnvironment 枚举(LOCAL/CI/STAGING) + EnvironmentConfig + EnvironmentManager
+- **测试数据管理** (`data/TestData.kt`)：TestAccount + TestDataManager（代码注册 / JSON 文件加载 / 按环境区分）
+- **监工模式引擎** (`engine/MonitorMode.kt`)：铁律代码化，自动循环全量测试→记录→判定，直到 0 个 FAIL
+  - runRound()：执行一轮全量测试
+  - runUntilAllPass()：迭代修复阶段
+  - runFinalVerification()：最终验收（Phase 6）
+  - writeResults()：自动生成 TEST_RESULTS.md
+- 新增 20 条单元测试（总计 62 条）
+
 ## [1.1.0] - 2026-04-14
 
 ### Added
