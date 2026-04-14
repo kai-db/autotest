@@ -2,6 +2,25 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.4.0] - 2026-04-14
+
+### Added
+- **BaseScenario** (`dsl/BaseScenario.kt`)：可复用测试场景，跨测试 `include()` 一行调用（参考 Kaspresso BaseScenario）
+- **DeviceActions** (`device/DeviceActions.kt`)：设备能力封装（参考 Kaspresso Device API）
+  - 网络控制：enableWifi/disableWifi/airplaneMode
+  - App 管理：clearAppData/forceStopApp/isAppInstalled
+  - 权限管理：grantPermission/revokePermission/grantAllPermissions
+  - 屏幕控制：wakeup/sleep/rotation/disableAnimations
+  - Logcat：clearLogcat/dumpLogcat/dumpCrashLog
+- **LogcatInterceptor** (`intercept/LogcatInterceptor.kt`)：步骤失败时自动收集设备 logcat 日志
+
+### Changed（铁律对齐）
+- **铁律2**：TestSuite.loadFromMarkdown() — 从 TEST_CASES.md 直接加载可执行用例
+- **铁律3**：MonitorMode Phase 职责明确，新增 recordFix() 和 getLastFailures()
+- **铁律6**：TestRunner 新增 envReset 参数，每条用例前强制重置环境
+- **铁律7**：删除 TestSuite.runFailed()，只允许全量执行
+- **铁律8**：ScreenshotInterceptor 记录截图路径，getAllScreenshots() 可查
+
 ## [1.3.0] - 2026-04-14
 
 ### Added
