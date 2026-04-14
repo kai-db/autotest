@@ -38,6 +38,7 @@ class ReportCollector : TestWatcher() {
         runnerInfo: com.autotest.runner.RunnerInfo? = null
     ): RunReport {
         val resolvedStart = if (startTime == 0L) endTime else startTime
+        val steps = stepResults.toList()
         return RunReport(
             appPackage = appPackage,
             startTime = resolvedStart,
@@ -45,7 +46,8 @@ class ReportCollector : TestWatcher() {
             device = device,
             runnerInfo = runnerInfo,
             failures = failures.toList(),
-            steps = stepResults.toList()
+            steps = steps,
+            summary = ReportSummary.from(steps)
         )
     }
 }

@@ -10,6 +10,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
+import com.autotest.intercept.InterceptorChain
+import com.autotest.intercept.LoggingInterceptor
+import com.autotest.intercept.ScreenshotInterceptor
+import com.autotest.log.DefaultTestLogger
+import com.autotest.log.TestLogger
 import com.autotest.report.ReportCollector
 import com.autotest.report.ReportWriter
 import com.autotest.runner.RunnerInfo
@@ -26,7 +31,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * UI 自动化测试基类，整合 Espresso + UiAutomator。
+ * UI 自动化测试基类，整合 Espresso + UiAutomator + 拦截器 + 日志。
  * 与具体项目零耦合，所有项目相关信息从 TestConfig 读取。
  */
 @RunWith(AndroidJUnit4::class)
@@ -34,8 +39,10 @@ abstract class BaseUiTest {
 
     lateinit var device: UiDevice
     lateinit var context: Context
+    lateinit var logger: TestLogger
 
     val idlingResource = CountingIdlingResource("BaseUiTest")
+    val interceptors = InterceptorChain()
 
     @get:Rule
     val reportCollector = ReportCollector()
@@ -49,6 +56,14 @@ abstract class BaseUiTest {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         context = ApplicationProvider.getApplicationContext()
         IdlingRegistry.getInstance().register(idlingResource)
+
+        logger = DefaultTestLogger(logDir = TestConfig.screenshotDir)
+        interceptors.addAll(
+            LoggingInterceptor(logger),
+            ScreenshotInterceptor()
+        )
+
+        logger.i("BaseUiTest", "setUp 完成，设备: ${android.os.Build.MODEL}")
     }
 
     @After
@@ -67,6 +82,7 @@ abstract class BaseUiTest {
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val reportFile = File(TestConfig.screenshotDir, "report_$timestamp.json")
             ReportWriter.write(report, reportFile)
+            logger.i("BaseUiTest", "报告已写入: ${reportFile.absolutePath}")
         }
     }
 

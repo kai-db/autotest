@@ -6,7 +6,7 @@
   【S1】文档体系。01-架构设计 + 02-技术方案 + 03-可行性评估 + 04-开发计划 + 05-AI测试手册 + CLAUDE.md,已完成,P0
   【S2】DeBox 冒烟用例。启动App + 弹窗处理 + 消息/朋友/发现/我的 Tab遍历 + 截图验证,未开始,P0
   【S2】DeBox 功能用例。聊天列表 + 群聊 + 朋友/AI助手 + 发现 + 个人信息/设置,未开始,P0
-  【S2】AI监工执行。Phase1-6全量执行DeBox用例 + TEST_RESULTS.md + 截图证据,未开始,P0
+  【S2】AI监工执行。全量执行DeBox用例 + TEST_RESULTS.md + 截图证据,未开始,P0
   【S2】截图基线。各Tab正常状态截图保存 + 后续对比变化,未开始,P1
   【S3】debox CI接入。debox项目接入autotest AAR + JUnit用例 + CircleCI Job（可选）,未开始,P2
   【S3】报告推送。OSS上传 + 飞书通知,未开始,P2
