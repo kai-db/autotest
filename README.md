@@ -2,7 +2,7 @@
 
 可复用的 Android 自动化测试框架，基于 **Espresso + UiAutomator**，配合 **Claude Code + mobile-mcp** 实现 AI 驱动的测试。
 
-**v1.4.0** | 15 个模块 | 62 条单元测试
+**v1.4.0** | 15 个模块 | 74 条单元测试 | 145.9K AAR
 
 ---
 
@@ -32,17 +32,18 @@ androidTestImplementation 'com.autotest:autotest:1.4.0'
 
 ```
 com.autotest
-├── base/          测试基类（Espresso + UiAutomator + 拦截器 + 日志）
+├── base/          测试基类（集成拦截器+日志+生命周期）
 ├── config/        分层配置 + 多环境管理（LOCAL/CI/STAGING）
 ├── data/          测试数据管理（TestAccount + JSON + 按环境区分）
+├── device/        设备能力封装（网络/权限/屏幕/App/Logcat）
 ├── action/        通用操作（Tab 切换、引导页跳过）
 ├── assertion/     通用断言（前台、文本、控件可见）
-├── dsl/           增强 DSL（自动编号/条件/重试/恢复/循环）
-├── engine/        执行引擎（TestRunner + TestSuite + MonitorMode）
-├── intercept/     拦截器链（日志/截图/性能）
+├── dsl/           DSL（编号/条件/重试/恢复/循环 + BaseScenario 复用）
+├── engine/        执行引擎（TestRunner + TestSuite + MonitorMode + TestCaseParser）
+├── intercept/     拦截器链（日志/截图/性能/弹窗/Logcat 5种内置）
 ├── lifecycle/     测试生命周期钩子
 ├── log/           统一日志（分级 D/I/W/E + Logcat + 文件）
-├── report/        结构化报告 + 摘要统计
+├── report/        报告（JSON + HTML + 摘要统计）
 ├── runner/        设备信息收集
 ├── stability/     Flaky 分类 + 自动重试
 └── util/          Espresso/UiAutomator 扩展 + 等待工具 + 截图 Rule
@@ -126,6 +127,39 @@ class LoginTest : BaseUiTest() {
 | `flakyStep("名称", maxRetries) {}` | 可重试步骤 |
 | `stepWithRecovery("名称", action, recovery)` | 带异常恢复 |
 | `repeat(times, "名称") { i -> }` | 循环步骤 |
+| `include(BaseScenario)` | 嵌入可复用场景 |
+
+### 可复用场景（BaseScenario）
+
+```kotlin
+class LoginScenario(private val phone: String) : BaseScenario("登录") {
+    override fun ScenarioBuilder.steps() {
+        step("点击登录") { device.clickText("登录") }
+        step("输入手机号") { viewById(R.id.phone).typeText(phone) }
+    }
+}
+
+// 在任何测试中一行调用
+scenario("完整流程") {
+    step("启动") { launchApp() }
+    include(LoginScenario("138..."))
+    step("验证首页") { ... }
+}
+```
+
+---
+
+## 设备能力（DeviceActions）
+
+```kotlin
+val deviceActions = DeviceActions.create()
+deviceActions.disableAnimations()        // CI 加速
+deviceActions.grantAllPermissions(pkg)   // 免弹窗
+deviceActions.disableWifi()              // 网络异常测试
+deviceActions.enableWifi()               // 恢复
+deviceActions.clearAppData(pkg)          // 重置 App
+deviceActions.dumpCrashLog(pkg)          // 崩溃日志
+```
 
 ---
 
@@ -183,9 +217,11 @@ interceptors.add(object : Interceptor {
 
 | 拦截器 | 功能 |
 |---|---|
+| `DialogDismissInterceptor` | 操作前自动关闭权限弹窗/App 弹窗 |
 | `LoggingInterceptor` | 自动记录操作和步骤日志 |
-| `ScreenshotInterceptor` | 步骤失败自动截图 |
+| `ScreenshotInterceptor` | 步骤失败自动截图（路径可追溯） |
 | `PerformanceInterceptor` | 耗时超阈值警告 |
+| `LogcatInterceptor` | 步骤失败自动收集设备 logcat 日志 |
 
 ---
 

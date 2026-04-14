@@ -14,10 +14,10 @@ com.autotest
 ├── device/        DeviceActions（网络/权限/屏幕/App管理/Logcat）
 ├── dsl/           Scenario + Step + BaseScenario（DSL + 可复用场景）
 ├── engine/        TestRunner + TestSuite + MonitorMode + TestCaseParser
-├── intercept/     Interceptor + InterceptorChain（拦截器：日志/截图/性能）
+├── intercept/     InterceptorChain + 5种拦截器（弹窗/日志/截图/性能/Logcat）
 ├── lifecycle/     TestLifecycleHook + Manager（测试生命周期钩子）
 ├── log/           TestLogger + DefaultTestLogger（统一日志：分级+文件+Logcat）
-├── report/        RunReport + ReportWriter + ReportSummary（报告+摘要统计）
+├── report/        RunReport + ReportWriter + HtmlReporter + ReportSummary
 ├── runner/        RunnerInfo + DeviceSelector（设备信息）
 ├── stability/     FlakyClassifier + RetryRunner + RetryPolicy（稳定性治理）
 └── util/          EspressoExt + UiAutomatorExt + WaitUtil + ScreenshotRule
