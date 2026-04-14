@@ -1,0 +1,77 @@
+任务编号,任务名称,阶段,分组,优先级,状态,预估工时,描述,产出文件,前置依赖
+1.1,项目初始化,阶段1-框架基础,项目搭建,P0,已完成,2h,Android Library 项目创建 + mavenLocal 发布配置,build.gradle / settings.gradle,无
+1.2,BaseUiTest 基类,阶段1-框架基础,测试基类,P0,已完成,4h,整合 Espresso + UiAutomator 的测试基类，提供设备操作和 App 启动能力,base/BaseUiTest.kt,1.1
+1.3,BaseActivityTest 基类,阶段1-框架基础,测试基类,P0,已完成,2h,基于 ActivityScenario 的测试基类，自动管理 Activity 生命周期,base/BaseActivityTest.kt,1.2
+1.4,Espresso 扩展函数,阶段1-框架基础,工具层,P0,已完成,2h,viewById/viewByText/click/typeText/replaceText/isDisplayed/hasText/scrollTo,util/EspressoExt.kt,1.1
+1.5,UiAutomator 扩展函数,阶段1-框架基础,工具层,P0,已完成,3h,权限弹窗处理(允许/拒绝)、滑动、等待文本/控件、点击文本/ResId、等待App前台,util/UiAutomatorExt.kt,1.1
+1.6,WaitUtil 等待工具,阶段1-框架基础,工具层,P1,已完成,1h,Espresso 线程内等待 + 轮询等待条件满足,util/WaitUtil.kt,1.4
+1.7,ScreenshotRule 失败截图,阶段1-框架基础,工具层,P1,已完成,2h,JUnit TestWatcher Rule，测试失败时自动截图保存到指定目录,util/ScreenshotRule.kt,1.2
+1.8,AppActions 通用操作,阶段1-框架基础,操作封装,P1,已完成,2h,遍历底部 Tab 切换、等待引导页/闪屏消失并跳过,action/AppActions.kt,1.5
+1.9,AppAssertions 通用断言,阶段1-框架基础,断言封装,P1,已完成,1h,App 在前台断言、屏幕文本可见断言、资源 ID 可见断言,assertion/AppAssertions.kt,1.5
+1.10,TestConfig 分层配置,阶段1-框架基础,配置中心,P0,已完成,4h,支持 properties 文件 + 命令行参数 + 代码默认值三层优先级配置,config/TestConfig.kt + ConfigLoader.kt + ConfigKeys.kt,1.1
+1.11,结构化 JSON 报告,阶段1-框架基础,报告系统,P0,已完成,4h,RunReport 数据模型 + ReportWriter JSON 序列化 + ReportCollector 失败收集，集成到 BaseUiTest,report/RunReport.kt + ReportWriter.kt + ReportCollector.kt,1.2
+1.12,DSL 步骤层,阶段1-框架基础,DSL,P1,已完成,3h,scenario/step DSL 语法，支持步骤命名和执行，与报告系统集成记录每步耗时和状态,dsl/Scenario.kt + Steps.kt,1.11
+1.13,RunnerInfo 设备信息收集,阶段1-框架基础,Runner,P1,已完成,2h,收集设备厂商/型号/SDK/Android版本/包名/语言环境，嵌入 JSON 报告,runner/RunnerInfo.kt + DeviceSelector.kt,1.11
+2.1,FlakyClassifier 失败分类,阶段2-稳定性治理,Flaky治理,P0,已完成,2h,根据错误信息判定失败类型：含 timeout/超时 → FLAKY，其他 → HARD_FAIL,stability/FlakyClassifier.kt,1.11
+2.2,RetryPolicy 数据模型,阶段2-稳定性治理,Flaky治理,P0,已完成,0.5h,重试策略数据类：最大重试次数 + 重试间隔毫秒数,stability/RetryPolicy.kt,无
+2.3,RetryRunner JUnit Rule,阶段2-稳定性治理,Flaky治理,P0,已完成,3h,JUnit TestRule 实现：FLAKY 类型自动重试指定次数，HARD_FAIL 直接抛出不浪费时间,stability/RetryRunner.kt,2.1 + 2.2
+2.4,WaitPolicy 数据模型,阶段2-稳定性治理,等待策略,P1,已完成,0.5h,等待策略数据类：超时时间 + 轮询间隔,stability/WaitPolicy.kt,无
+2.5,单元测试覆盖,阶段2-稳定性治理,质量保障,P0,已完成,3h,ConfigLoaderTest + FlakyClassifierTest + RetryRunnerTest + ReportWriterTest + ScenarioTest + RiskEvaluatorTest,src/test/ 下 6 个测试类,2.1~2.4
+3.1.1,Claude AI 插件实现,阶段3-AI能力落地,AI插件,P1,未开始,8h,对接 Claude API 的 AIPlugin 实现：HTTP 调用、prompt 构建、response 解析、API Key 配置,ai/ClaudePlugin.kt,1.10
+3.1.2,本地 LLM 插件实现,阶段3-AI能力落地,AI插件,P2,未开始,4h,本地/自定义 LLM 的 AIPlugin 实现（可选），支持 Ollama 等本地模型,ai/LocalLLMPlugin.kt,3.1.1
+3.1.3,AIPatchApplier 补丁应用,阶段3-AI能力落地,AI插件,P1,未开始,6h,实现真正的代码 patch 逻辑：解析 diff 格式、应用到目标文件、支持回滚,ai/AIPatchApplier.kt（改造）,3.1.1
+3.2.1,AI 测试用例生成器,阶段3-AI能力落地,AI测试生成,P1,未开始,8h,根据 Activity 类名 + 布局 XML / View 层级 dump 生成可执行的 Kotlin 测试代码,ai/TestGenerator.kt,3.1.1
+3.2.2,AI 测试数据生成器,阶段3-AI能力落地,AI测试生成,P2,未开始,4h,AI 生成测试数据：支持边界值、异常值、国际化数据,ai/TestDataGenerator.kt,3.1.1
+3.3.1,AI Flaky 修复器,阶段3-AI能力落地,AI修复,P1,未开始,8h,分析 Flaky 失败日志生成修复补丁：增加等待、调整选择器、处理弹窗，走风险评估流程,ai/FlakyFixer.kt,3.1.1 + 2.1
+3.3.2,FlakyFixer 与 RetryRunner 联动,阶段3-AI能力落地,AI修复,P1,未开始,4h,RetryRunner 重试仍失败时自动触发 AI 分析并尝试生成修复方案,stability/RetryRunner.kt（改造）,3.3.1 + 2.3
+3.4.1,RiskLevel 扩展为三级,阶段3-AI能力落地,风险门控,P1,未开始,2h,L0（只读/分析报告）、L1（低风险自动应用）、L2（高风险需人工审批）,risk/RiskLevel.kt（改造）,无
+3.4.2,RiskEvaluator 规则完善,阶段3-AI能力落地,风险门控,P1,未开始,4h,基于变更类型（等待/选择器/逻辑/删除）和影响范围（单文件/多文件）综合评估风险等级,risk/RiskEvaluator.kt（改造）,3.4.1
+3.4.3,审批回调机制实现,阶段3-AI能力落地,风险门控,P2,未开始,6h,支持 CLI 交互确认 / 飞书通知审批 / CI 手动审批三种审批方式,risk/ApprovalGate.kt（改造）,3.4.2
+4.1.1,CircleCI 测试 Job,阶段4-CI与多设备,CI集成,P1,未开始,6h,创建 CircleCI 自动化测试 job：模拟器启动等待、执行测试、收集报告截图、飞书通知,.circleci/test-config.yml,5.5.1
+4.1.2,GitHub Actions Workflow,阶段4-CI与多设备,CI集成,P2,未开始,4h,备选 CI 方案：GitHub Actions 自动化测试工作流,.github/workflows/autotest.yml,4.1.1
+4.1.3,集成到 debox CI Pipeline,阶段4-CI与多设备,CI集成,P1,未开始,4h,将自动化测试 job 集成到 debox-android 现有的 CircleCI 流水线中,debox .circleci/config.yml（改造）,4.1.1 + 5.5.1
+4.2.1,DeviceSelector 完善,阶段4-CI与多设备,多设备,P1,未开始,4h,支持指定设备 serial、优先物理机策略、并发设备分配,runner/DeviceSelector.kt（改造）,1.13
+4.2.2,多设备并行执行器,阶段4-CI与多设备,多设备,P2,未开始,8h,多设备并行执行测试：设备发现、测试任务分片、结果合并到统一报告,runner/ParallelRunner.kt,4.2.1
+4.2.3,模拟器自动管理,阶段4-CI与多设备,多设备,P2,未开始,6h,自动创建/启动/销毁 Android 模拟器（CI 环境使用）,runner/EmulatorManager.kt,4.2.1
+4.3.1,Allure 报告适配,阶段4-CI与多设备,报告增强,P2,未开始,4h,可选的 Allure 报告适配桥接层,report/AllureBridge.kt,1.11
+4.3.2,HTML 报告生成器,阶段4-CI与多设备,报告增强,P2,未开始,6h,独立的 HTML 测试报告生成（不依赖 Gradle 内置报告）,report/HtmlReporter.kt,1.11
+4.3.3,报告推送,阶段4-CI与多设备,报告增强,P1,未开始,4h,支持上传报告到阿里云 OSS + 发送飞书消息通知,report/ReportPusher.kt,4.3.2
+5.1.1,debox 添加 mavenLocal,阶段5-debox落地,接入框架,P0,未开始,0.5h,在 debox-android 根 build.gradle 的 allprojects.repositories 添加 mavenLocal(),debox build.gradle（改造）,1.1
+5.1.2,debox 添加 autotest 依赖,阶段5-debox落地,接入框架,P0,未开始,0.5h,在 debox app/build.gradle 添加 androidTestImplementation 依赖,debox app/build.gradle（改造）,5.1.1
+5.1.3,debox 测试配置文件,阶段5-debox落地,接入框架,P0,未开始,1h,创建 test-config.properties：包名 com.tm.security.wallet、超时 20s、Tab 配置、截图目录,debox androidTest/assets/test-config.properties,5.1.2
+5.2.1,迁移 AppLaunchTest,阶段5-debox落地,迁移测试,P0,未开始,3h,将 AppLaunchTest 从 Kaspresso 迁移到 autotest 框架，保持用例逻辑不变,debox cases/AppLaunchTest.kt（改造）,5.1.3
+5.2.2,迁移 NavigationTest,阶段5-debox落地,迁移测试,P0,未开始,3h,将 NavigationTest 从 Kaspresso 迁移到 autotest 框架,debox cases/NavigationTest.kt（改造）,5.1.3
+5.2.3,迁移 MainScreen Page Object,阶段5-debox落地,迁移测试,P1,未开始,2h,将 MainScreen 迁移为使用 autotest 的 Espresso/UiAutomator 扩展,debox screen/MainScreen.kt（改造）,5.1.3
+5.2.4,迁移 LaunchAppScenario,阶段5-debox落地,迁移测试,P1,未开始,2h,将 LaunchAppScenario 迁移为使用 autotest 的 scenario DSL,debox scenario/LaunchAppScenario.kt（改造）,5.1.3 + 1.12
+5.3.1,DeboxConfig 配置,阶段5-debox落地,适配层,P1,未开始,2h,debox 特有配置：测试登录账号、环境切换（测试/预发/线上）、特殊开关,debox/DeboxConfig.kt,5.1.3
+5.3.2,DeboxActions 操作封装,阶段5-debox落地,适配层,P0,未开始,6h,debox 特有操作：手机号/钱包登录流程、引导页/升级弹窗处理、ARouter 页面跳转,debox/DeboxActions.kt,5.3.1
+5.3.3,DeboxAssertions 断言封装,阶段5-debox落地,适配层,P1,未开始,3h,debox 特有断言：登录状态验证、钱包连接状态验证、用户信息验证,debox/DeboxAssertions.kt,5.3.1
+5.4.1,冷启动测试,阶段5-debox落地,核心用例,P0,未开始,2h,验证冷启动时间 < 15 秒,cases/ColdLaunchTest.kt,5.3.2
+5.4.2,启动 + 权限弹窗处理,阶段5-debox落地,核心用例,P0,未开始,2h,启动 App 并自动处理系统权限弹窗,cases/LaunchPermissionTest.kt,5.3.2
+5.4.3,底部 Tab 切换,阶段5-debox落地,核心用例,P0,未开始,2h,遍历首页/社区/发现/我的 四个 Tab 并验证页面正确加载,cases/TabNavigationTest.kt,5.3.2
+5.4.4,手机号登录流程,阶段5-debox落地,核心用例,P0,未开始,4h,输入手机号 → 获取验证码 → 输入验证码 → 登录成功验证,cases/PhoneLoginTest.kt,5.3.2
+5.4.5,钱包连接登录流程,阶段5-debox落地,核心用例,P1,未开始,4h,钱包连接登录 → 签名确认 → 登录成功验证,cases/WalletLoginTest.kt,5.3.2
+5.4.6,首页信息流测试,阶段5-debox落地,核心用例,P1,未开始,3h,首页信息流滑动 + 加载更多 + 内容展示验证,cases/HomeFeedTest.kt,5.4.4
+5.4.7,社区帖子浏览评论,阶段5-debox落地,核心用例,P1,未开始,4h,社区 Tab → 浏览帖子 → 打开详情 → 评论,cases/CommunityPostTest.kt,5.4.4
+5.4.8,钱包页面基础操作,阶段5-debox落地,核心用例,P1,未开始,4h,钱包页面打开 → 查看余额 → 资产列表展示验证,cases/WalletBasicTest.kt,5.4.4
+5.4.9,个人设置页导航,阶段5-debox落地,核心用例,P1,未开始,2h,我的 Tab → 设置页 → 各设置项可点击验证,cases/SettingsNavTest.kt,5.4.4
+5.4.10,退出登录,阶段5-debox落地,核心用例,P0,未开始,2h,设置页 → 退出登录 → 返回登录页验证,cases/LogoutTest.kt,5.4.4
+5.4.11,升级弹窗处理,阶段5-debox落地,核心用例,P1,未开始,2h,模拟升级弹窗出现时的跳过/取消处理验证,cases/UpgradeDialogTest.kt,5.3.2
+5.4.12,网络异常恢复测试,阶段5-debox落地,核心用例,P2,未开始,4h,关闭网络 → 验证错误提示 → 恢复网络 → 验证自动恢复,cases/NetworkRecoveryTest.kt,5.3.2
+5.5.1,真机全部用例通过,阶段5-debox落地,验收,P0,未开始,4h,12 个核心用例在真机上全部通过,测试报告,5.4.1~5.4.12
+5.5.2,Flaky 率验收,阶段5-debox落地,验收,P0,未开始,2h,连续运行 3 轮，Flaky 率 < 5%（RetryRunner 重试后）,测试统计,5.5.1
+5.5.3,CI 模拟器验收,阶段5-debox落地,验收,P1,未开始,4h,全部核心用例在 CI 模拟器上稳定执行通过,CI 运行记录,5.5.1 + 4.1.1
+5.5.4,JSON 报告验收,阶段5-debox落地,验收,P1,未开始,1h,验证 JSON 报告正确包含设备信息、步骤结果、失败分类、耗时统计,report.json,5.5.1
+6.1.1,Page Object 生成器,阶段6-持续扩展,框架增强,P2,未开始,8h,根据布局 XML 自动生成 Page Object 类,tools/PageObjectGenerator.kt,1.4
+6.1.2,测试录制器,阶段6-持续扩展,框架增强,P3,未开始,16h,录制用户操作并自动生成 scenario DSL 测试代码,tools/TestRecorder.kt,1.12
+6.1.3,性能测试模块,阶段6-持续扩展,框架增强,P2,未开始,8h,启动时间测量、帧率检测、内存泄漏检测、电量消耗监控,perf/PerformanceCollector.kt,1.2
+6.1.4,无障碍测试,阶段6-持续扩展,框架增强,P3,未开始,6h,自动检查 contentDescription 缺失、色彩对比度不足等无障碍问题,a11y/AccessibilityChecker.kt,1.4
+6.1.5,国际化测试,阶段6-持续扩展,框架增强,P3,未开始,6h,多语言环境切换 + 自动截图对比 + 文本溢出检测,i18n/LocaleTestRunner.kt,1.7
+6.2.1,AI 视觉回归测试,阶段6-持续扩展,AI迭代,P2,未开始,12h,AI 对比截图差异，智能判定是 UI 变更还是 bug,ai/VisualRegressionAI.kt,3.1.1 + 1.7
+6.2.2,AI 自愈测试,阶段6-持续扩展,AI迭代,P2,未开始,12h,元素选择器失效时 AI 自动分析页面结构寻找替代选择器,ai/SelfHealingAI.kt,3.1.1
+6.2.3,AI 测试覆盖分析,阶段6-持续扩展,AI迭代,P2,未开始,8h,AI 分析 git diff 代码变更，推荐需要运行的测试用例,ai/CoverageAnalyzer.kt,3.1.1
+6.2.4,自然语言测试,阶段6-持续扩展,AI迭代,P3,未开始,12h,用中文描述测试步骤，AI 自动转换为可执行的 Kotlin 测试代码,ai/NaturalLanguageTest.kt,3.2.1
+6.3.1,accesscontrolterminal 接入,阶段6-持续扩展,多项目复用,P2,未开始,4h,将 autotest 框架接入 accesscontrolterminal 项目验证复用能力,accesscontrolterminal androidTest/,5.5.1
+6.3.2,通用 App 适配模板,阶段6-持续扩展,多项目复用,P2,未开始,6h,提取登录、导航、权限等通用适配模板，新项目开箱即用,template/AppTemplate.kt,6.3.1
+6.3.3,私有 Maven 仓库发布,阶段6-持续扩展,多项目复用,P1,未开始,4h,从 mavenLocal 升级为私有 Maven 仓库发布，团队共享,build.gradle（改造）,5.5.1
+6.3.4,版本管理与兼容性矩阵,阶段6-持续扩展,多项目复用,P2,未开始,2h,建立版本发布规范 + 各项目 Android SDK 版本兼容性矩阵文档,docs/COMPATIBILITY.md,6.3.3

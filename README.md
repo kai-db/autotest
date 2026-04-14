@@ -224,14 +224,150 @@ class XxxTest : BaseUiTest() {
 
 ---
 
+## DSL 步骤层
+
+使用 `scenario` / `step` DSL 组织测试步骤，支持与报告系统集成：
+
+```kotlin
+@Test
+fun testLoginFlow() {
+    val s = scenario("登录流程", reportCollector) {
+        step("打开登录页") {
+            device.clickText("登录")
+        }
+        step("输入账号密码") {
+            viewById(R.id.et_account).typeText("test")
+            viewById(R.id.et_password).typeText("123456")
+        }
+        step("点击登录按钮") {
+            viewById(R.id.btn_login).click()
+        }
+        step("验证登录成功") {
+            AppAssertions.assertTextVisible(device, "首页")
+        }
+    }
+    s.run()
+}
+```
+
+每个步骤的执行时间、通过/失败状态都会记录到 JSON 报告中。不传 `collector` 也能正常使用，只是不会记录到报告。
+
+---
+
+## 稳定性治理
+
+### Flaky 分类
+
+`FlakyClassifier` 自动判定失败类型：
+- 含 "timeout"/"超时" → `FLAKY`（可重试）
+- 其他 → `HARD_FAIL`（直接失败）
+
+### 自动重试
+
+使用 `RetryRunner` Rule 对 Flaky 测试自动重试：
+
+```kotlin
+@get:Rule
+val retryRule = RetryRunner(
+    policy = RetryPolicy(maxRetries = 2, intervalMs = 1000)
+)
+```
+
+只有被判定为 `FLAKY` 的失败才会重试，`HARD_FAIL` 类型的错误直接抛出，不浪费时间。
+
+### WaitPolicy
+
+```kotlin
+val policy = WaitPolicy(timeoutMs = 10000, intervalMs = 500)
+```
+
+---
+
+## AI 插件接口
+
+框架提供 `AIPlugin` 接口，支持接入 AI 能力：
+
+```kotlin
+interface AIPlugin {
+    fun generateTests(prompt: String): AIResult    // AI 生成测试用例
+    fun fixFlaky(report: String): AIResult         // AI 修复 Flaky 测试
+    fun generateData(schema: String): AIResult     // AI 生成测试数据
+    fun summarizeRun(runLog: String): AIResult      // AI 总结运行结果
+}
+```
+
+### 风险门控
+
+AI 生成的变更通过 `RiskEvaluator` 评估风险等级：
+- **L1（低风险）**：如添加等待时间，自动应用
+- **L2（高风险）**：需要人工审批
+
+```kotlin
+val risk = RiskEvaluator.evaluate(changeSummary)
+val shouldApply = ApprovalGate.shouldApply(risk, changeSummary) { level, summary ->
+    // 人工审批回调
+    showApprovalDialog(level, summary)
+}
+```
+
+---
+
+## 设备信息与 Runner
+
+`RunnerInfo` 自动收集运行环境信息并嵌入报告：
+
+```json
+{
+  "runnerInfo": {
+    "deviceManufacturer": "Google",
+    "deviceModel": "Pixel 6",
+    "sdkVersion": 33,
+    "androidVersion": "13",
+    "appPackage": "com.example.app",
+    "testPackage": "com.example.app.test",
+    "locale": "zh_CN"
+  }
+}
+```
+
+---
+
 ## 测试报告
 
-```bash
-# HTML 报告
-app/build/reports/androidTests/connected/index.html
+框架自动生成结构化 JSON 报告到 `TestConfig.screenshotDir/report.json`，包含：
+- 运行时间、设备信息
+- 失败列表（含 Flaky 分类和重试策略）
+- DSL 步骤执行结果（耗时、通过/失败）
 
-# 拉取失败截图
-adb pull /sdcard/Pictures/autotest/ ./test-screenshots/
+```bash
+# 拉取报告和截图
+adb pull /sdcard/Pictures/autotest/ ./test-output/
+
+# HTML 报告（Gradle 自带）
+app/build/reports/androidTests/connected/index.html
+```
+
+---
+
+## CI 集成
+
+```bash
+# 发布框架到本地 Maven
+./gradlew :autotest:publishToMavenLocal
+
+# 运行全部测试
+./gradlew :app:connectedAndroidTest
+
+# 指定测试类
+./gradlew :app:connectedAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.xxx.test.cases.AppLaunchTest
+
+# 命令行覆盖配置
+./gradlew :app:connectedAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.app.packageName=com.other.app
+
+# 拉取结果
+adb pull /sdcard/Pictures/autotest/ ./test-output/
 ```
 
 ---

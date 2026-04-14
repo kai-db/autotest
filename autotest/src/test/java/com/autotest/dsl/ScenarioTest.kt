@@ -17,4 +17,15 @@ class ScenarioTest {
 
         assertEquals(listOf("first", "second"), calls)
     }
+
+    @Test
+    fun scenario_runsWithoutCollector() {
+        var count = 0
+        val s = scenario("no-collector") {
+            step("a") { count++ }
+            step("b") { count++ }
+        }
+        s.run()
+        assertEquals(2, count)
+    }
 }

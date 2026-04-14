@@ -8,6 +8,7 @@ import com.autotest.stability.RetryPolicy
 class ReportCollector : TestWatcher() {
     private var startTime: Long = 0L
     private val failures = mutableListOf<Failure>()
+    private val stepResults = mutableListOf<StepResult>()
     private var retryPolicy: RetryPolicy? = null
     private var flakyClassifier: FlakyClassifier = FlakyClassifier
 
@@ -40,10 +41,15 @@ class ReportCollector : TestWatcher() {
         )
     }
 
+    fun addStepResult(result: StepResult) {
+        stepResults.add(result)
+    }
+
     fun buildReport(
         appPackage: String,
         endTime: Long = System.currentTimeMillis(),
-        device: String? = null
+        device: String? = null,
+        runnerInfo: com.autotest.runner.RunnerInfo? = null
     ): RunReport {
         val resolvedStart = if (startTime == 0L) endTime else startTime
         return RunReport(
@@ -51,7 +57,9 @@ class ReportCollector : TestWatcher() {
             startTime = resolvedStart,
             endTime = endTime,
             device = device,
-            failures = failures.toList()
+            runnerInfo = runnerInfo,
+            failures = failures.toList(),
+            steps = stepResults.toList()
         )
     }
 }

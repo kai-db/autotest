@@ -13,6 +13,7 @@ import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
 import com.autotest.report.ReportCollectorHolder
 import com.autotest.report.ReportWriter
+import com.autotest.runner.RunnerInfo
 import com.autotest.stability.FlakyClassifier
 import com.autotest.stability.RetryPolicy
 import com.autotest.util.allowPermission
@@ -53,11 +54,12 @@ abstract class BaseUiTest {
         try {
             Espresso.onIdle()
         } finally {
-            val deviceInfo = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+            val runnerInfo = RunnerInfo.collect(TestConfig.packageName)
             val report = reportCollector.buildReport(
                 appPackage = TestConfig.packageName,
                 endTime = System.currentTimeMillis(),
-                device = deviceInfo
+                device = runnerInfo.deviceName,
+                runnerInfo = runnerInfo
             )
             val reportFile = File(TestConfig.screenshotDir, "report.json")
             ReportWriter.write(report, reportFile)
