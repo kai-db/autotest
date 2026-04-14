@@ -19,19 +19,58 @@ object TestConfig {
     private val instrArgs: android.os.Bundle by lazy {
         InstrumentationRegistry.getArguments()
     }
+    private var initialized = false
+    private var config: Map<String, String> = emptyMap()
+
+    fun init(loader: ConfigLoader = defaultLoader()) {
+        config = loader.load()
+        initialized = true
+    }
 
     fun init() {
+        init(defaultLoader())
+    }
+
+    private fun defaultLoader(): ConfigLoader {
         try {
             val ctx = InstrumentationRegistry.getInstrumentation().context
             ctx.assets.open("test-config.properties").use { props.load(it) }
         } catch (_: Exception) {
             // 没有配置文件也能跑，全用默认值
         }
+        return ConfigLoader(
+            global = propsAsMap(),
+            app = emptyMap(),
+            env = emptyMap(),
+            cli = bundleAsMap(instrArgs)
+        )
+    }
+
+    private fun propsAsMap(): Map<String, String> {
+        return props.stringPropertyNames().associateWith { props.getProperty(it) }
+    }
+
+    private fun bundleAsMap(bundle: android.os.Bundle): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+        for (key in bundle.keySet()) {
+            val value = bundle.getString(key)
+            if (value != null) {
+                result[key] = value
+            }
+        }
+        return result
+    }
+
+    private fun ensureInit() {
+        if (!initialized) {
+            init(defaultLoader())
+        }
     }
 
     /** 获取字符串配置 */
     fun getString(key: String, default: String = ""): String {
-        return instrArgs.getString(key) ?: props.getProperty(key) ?: default
+        ensureInit()
+        return config[key] ?: default
     }
 
     /** 获取 Long 配置 */
@@ -58,20 +97,20 @@ object TestConfig {
     // ==================== 常用 Key ====================
 
     /** 被测 App 包名 */
-    val packageName: String get() = getString("app.packageName")
+    val packageName: String get() = getString(ConfigKeys.APP_PACKAGE_NAME)
 
     /** App 启动超时（毫秒） */
-    val launchTimeout: Long get() = getLong("app.launchTimeout", 15000L)
+    val launchTimeout: Long get() = getLong(ConfigKeys.APP_LAUNCH_TIMEOUT, 15000L)
 
     /** 最大可接受启动时间（毫秒） */
-    val maxLaunchTime: Long get() = getLong("app.maxLaunchTime", 10000L)
+    val maxLaunchTime: Long get() = getLong(ConfigKeys.APP_MAX_LAUNCH_TIME, 10000L)
 
     /** 底部 Tab 文本列表 */
-    val bottomTabs: List<String> get() = getList("app.bottomTabs")
+    val bottomTabs: List<String> get() = getList(ConfigKeys.APP_BOTTOM_TABS)
 
     /** 截图保存目录 */
-    val screenshotDir: String get() = getString("app.screenshotDir", "/sdcard/Pictures/autotest")
+    val screenshotDir: String get() = getString(ConfigKeys.APP_SCREENSHOT_DIR, "/sdcard/Pictures/autotest")
 
     /** 是否在失败时自动截图 */
-    val screenshotOnFailure: Boolean get() = getBoolean("app.screenshotOnFailure", true)
+    val screenshotOnFailure: Boolean get() = getBoolean(ConfigKeys.APP_SCREENSHOT_ON_FAILURE, true)
 }
