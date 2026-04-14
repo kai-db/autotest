@@ -31,16 +31,18 @@ class TestRunner(
     private val logger: TestLogger,
     private val interceptors: InterceptorChain = InterceptorChain(),
     private val lifecycle: TestLifecycleManager = TestLifecycleManager(),
-    private val reportDir: String = "/sdcard/Pictures/autotest"
+    private val reportDir: String = "/sdcard/Pictures/autotest",
+    private val envReset: (() -> Unit)? = null
 ) {
 
     private val results = mutableListOf<TestCaseResult>()
 
     /**
      * 执行单个测试用例。
+     * 铁律6：每条用例前强制重置环境（如果设置了 envReset）。
      *
      * @param name 用例名称
-     * @param before 前置操作（如启动 App、重置环境）
+     * @param before 额外的前置操作（在 envReset 之后执行）
      * @param after 后置操作（如清理数据）
      * @param steps 测试步骤 DSL
      * @return 测试结果
@@ -59,7 +61,13 @@ class TestRunner(
         var error: Throwable? = null
 
         try {
-            // 前置操作
+            // 铁律6：强制环境重置（每条用例独立）
+            envReset?.let {
+                logger.d("TestRunner", "重置环境...")
+                it()
+            }
+
+            // 额外前置操作
             before?.let {
                 logger.d("TestRunner", "执行前置操作...")
                 interceptors.intercept("before:$name") { it() }

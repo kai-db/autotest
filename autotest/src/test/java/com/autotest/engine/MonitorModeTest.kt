@@ -55,22 +55,15 @@ class MonitorModeTest {
     }
 
     @Test
-    fun runUntilAllPass_passesFirstRound() {
+    fun multipleRounds_accumulate() {
         suite.addTest("TC-001", "通过") { step("s") {} }
 
-        val result = monitor.runUntilAllPass()
-        assertTrue(result)
-        assertEquals(1, monitor.getRounds().size)
-    }
+        monitor.runRound()
+        monitor.runRound()
 
-    @Test
-    fun runUntilAllPass_failsFirstRound() {
-        suite.addTest("TC-001", "失败") {
-            step("s") { throw RuntimeException("err") }
-        }
-
-        val result = monitor.runUntilAllPass()
-        assertFalse(result)
+        assertEquals(2, monitor.getRounds().size)
+        assertEquals(1, monitor.getRounds()[0].round)
+        assertEquals(2, monitor.getRounds()[1].round)
     }
 
     @Test
@@ -113,5 +106,33 @@ class MonitorModeTest {
         monitor.reset()
 
         assertEquals(0, monitor.getRounds().size)
+    }
+
+    @Test
+    fun recordFix_appearsInMarkdown() {
+        suite.addTest("TC-001", "失败") {
+            step("s") { throw RuntimeException("err") }
+        }
+        monitor.runRound()
+        monitor.recordFix("TC-001", "选择器失效", "更新 resource-id")
+
+        val md = monitor.toMarkdown()
+        assertTrue(md.contains("修复记录"))
+        assertTrue(md.contains("TC-001"))
+        assertTrue(md.contains("选择器失效"))
+        assertTrue(md.contains("更新 resource-id"))
+    }
+
+    @Test
+    fun getLastFailures_returnsFailedCases() {
+        suite.addTest("TC-001", "通过") { step("s") {} }
+        suite.addTest("TC-002", "失败") {
+            step("s") { throw RuntimeException("err") }
+        }
+        monitor.runRound()
+
+        val failures = monitor.getLastFailures()
+        assertEquals(1, failures.size)
+        assertEquals("TC-002 失败", failures[0].name)
     }
 }

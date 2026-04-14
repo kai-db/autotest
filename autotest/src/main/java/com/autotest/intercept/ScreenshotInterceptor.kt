@@ -9,8 +9,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 截图拦截器：步骤失败时自动截图。
- * 可选：步骤成功后也截图（用于建立基线）。
+ * 截图拦截器：步骤失败时自动截图，并记录截图路径。
+ * 铁律8：验证必须有截图证据。
  */
 class ScreenshotInterceptor(
     private val screenshotOnFailure: Boolean = true,
@@ -23,15 +23,24 @@ class ScreenshotInterceptor(
 
     private val dateFormat = SimpleDateFormat("HHmmss", Locale.getDefault())
 
+    /** 最近一次截图的路径，供外部读取写入报告 */
+    var lastScreenshotPath: String? = null
+        private set
+
+    /** 所有截图路径，key = stepNumber */
+    private val screenshotMap = mutableMapOf<String, String>()
+
     override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {
         if (screenshotOnSuccess) {
-            take("step_${stepNumber}_pass")
+            val path = take("step_${stepNumber}_pass")
+            path?.let { screenshotMap[stepNumber] = it }
         }
     }
 
     override fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {
         if (screenshotOnFailure) {
-            take("step_${stepNumber}_fail")
+            val path = take("step_${stepNumber}_fail")
+            path?.let { screenshotMap[stepNumber] = it }
         }
     }
 
@@ -41,10 +50,21 @@ class ScreenshotInterceptor(
         }
     }
 
-    private fun take(name: String) {
-        val dir = File(TestConfig.screenshotDir, "auto")
-        dir.mkdirs()
-        val timestamp = dateFormat.format(Date())
-        device.takeScreenshot(File(dir, "${name}_$timestamp.png"))
+    fun getScreenshotPath(stepNumber: String): String? = screenshotMap[stepNumber]
+
+    fun getAllScreenshots(): Map<String, String> = screenshotMap.toMap()
+
+    private fun take(name: String): String? {
+        return try {
+            val dir = File(TestConfig.screenshotDir, "auto")
+            dir.mkdirs()
+            val timestamp = dateFormat.format(Date())
+            val file = File(dir, "${name}_$timestamp.png")
+            device.takeScreenshot(file)
+            lastScreenshotPath = file.absolutePath
+            file.absolutePath
+        } catch (_: Throwable) {
+            null
+        }
     }
 }

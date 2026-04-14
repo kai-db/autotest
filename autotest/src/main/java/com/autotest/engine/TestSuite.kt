@@ -6,13 +6,9 @@ import com.autotest.log.TestLogger
  * 测试套件：批量管理和执行多个测试用例。
  * 支持按优先级排序、全量执行、结果汇总。
  *
- * 用法：
- * ```
- * val suite = TestSuite("DeBox 冒烟测试", runner, logger)
- * suite.addTest("TC-001", "冷启动", Priority.P0) { ... }
- * suite.addTest("TC-002", "Tab导航", Priority.P0) { ... }
- * val report = suite.runAll()
- * ```
+ * 铁律约束：
+ * - 只暴露 runAll()，不暴露 runFailed()（铁律7：回归必须全量跑）
+ * - 支持从 TEST_CASES.md 加载用例（铁律2：按用例执行）
  */
 class TestSuite(
     val name: String,
@@ -45,8 +41,43 @@ class TestSuite(
     }
 
     /**
-     * 按优先级 P0→P1→P2 执行所有用例。
-     * @return 所有用例的结果列表
+     * 从 TEST_CASES.md 解析用例并注册。
+     * 解析出的用例只有描述信息（步骤文本），实际执行逻辑需要通过 stepAction 映射。
+     *
+     * @param markdown TEST_CASES.md 内容
+     * @param stepAction 将步骤描述文本映射为可执行的操作
+     */
+    fun loadFromMarkdown(
+        markdown: String,
+        stepAction: (testId: String, stepDescription: String) -> Unit
+    ) {
+        val parsed = TestCaseParser.parse(markdown)
+        for (tc in parsed) {
+            val priority = when (tc.priority) {
+                "P0" -> Priority.P0
+                "P1" -> Priority.P1
+                else -> Priority.P2
+            }
+            val capturedSteps = tc.steps
+            val capturedVerifications = tc.verifications
+            val capturedId = tc.id
+
+            addTest(tc.id, tc.name, priority) {
+                capturedSteps.forEachIndexed { i, desc ->
+                    step("步骤${i + 1}: $desc") { stepAction(capturedId, desc) }
+                }
+                capturedVerifications.forEachIndexed { i, desc ->
+                    step("验证${i + 1}: $desc") { stepAction(capturedId, desc) }
+                }
+            }
+        }
+
+        logger.i("TestSuite", "从 Markdown 加载 ${parsed.size} 条用例")
+    }
+
+    /**
+     * 按优先级 P0→P1→P2 全量执行所有用例。
+     * 铁律7：只有全量执行，没有部分执行。
      */
     fun runAll(): List<TestCaseResult> {
         logger.i("TestSuite", "══════ 开始测试套件: $name（${tests.size} 条用例）══════")
@@ -73,29 +104,12 @@ class TestSuite(
         return results
     }
 
-    /**
-     * 只运行失败的用例（用于调试，注意：正式回归应全量跑）。
-     */
-    fun runFailed(previousResults: List<TestCaseResult>): List<TestCaseResult> {
-        val failedNames = previousResults.filter { !it.passed }.map { it.name }.toSet()
-        logger.i("TestSuite", "重跑失败用例: ${failedNames.size} 条")
-
-        val results = mutableListOf<TestCaseResult>()
-        tests.filter { "${it.id} ${it.name}" in failedNames }
-            .forEach { test ->
-                val result = runner.runTest(
-                    name = "${test.id} ${test.name}",
-                    before = test.before,
-                    after = test.after,
-                    steps = test.steps
-                )
-                results.add(result)
-            }
-        return results
-    }
-
     fun getTestCount(): Int = tests.size
 
     fun getTestsByPriority(priority: Priority): List<TestDefinition> =
         tests.filter { it.priority == priority }
+
+    fun clear() {
+        tests.clear()
+    }
 }

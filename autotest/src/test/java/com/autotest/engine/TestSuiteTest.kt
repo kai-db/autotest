@@ -88,4 +88,41 @@ class TestSuiteTest {
         assertEquals(2, suite.getTestsByPriority(TestSuite.Priority.P0).size)
         assertEquals(1, suite.getTestsByPriority(TestSuite.Priority.P1).size)
     }
+
+    @Test
+    fun loadFromMarkdown_registersTests() {
+        val md = """
+            ## P0 — 核心
+
+            ### TC-001 冷启动
+            - 步骤：启动 App
+            - 验证：到达首页
+
+            ### TC-002 导航
+            - 步骤：点击 Tab
+            - 验证：页面正常
+
+            ## P1 — 功能
+
+            ### TC-003 登录
+            - 步骤：输入账号
+            - 步骤：点击登录
+            - 验证：登录成功
+        """.trimIndent()
+
+        val executed = mutableListOf<String>()
+        suite.loadFromMarkdown(md) { testId, desc ->
+            executed.add("$testId:$desc")
+        }
+
+        assertEquals(3, suite.getTestCount())
+        assertEquals(2, suite.getTestsByPriority(TestSuite.Priority.P0).size)
+        assertEquals(1, suite.getTestsByPriority(TestSuite.Priority.P1).size)
+
+        // 执行并验证步骤被调用
+        suite.runAll()
+        assertTrue(executed.contains("TC-001:启动 App"))
+        assertTrue(executed.contains("TC-001:到达首页"))
+        assertTrue(executed.contains("TC-003:输入账号"))
+    }
 }
