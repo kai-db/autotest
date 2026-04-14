@@ -98,7 +98,14 @@ object TestConfig {
     // ==================== 常用 Key ====================
 
     /** 被测 App 包名 */
-    val packageName: String get() = getString(ConfigKeys.APP_PACKAGE_NAME)
+    val packageName: String
+        get() {
+            val pkg = getString(ConfigKeys.APP_PACKAGE_NAME)
+            require(pkg.isNotEmpty()) {
+                "app.packageName 未配置。请在 test-config.properties 中设置，或通过命令行 -e app.packageName 指定。"
+            }
+            return pkg
+        }
 
     /** App 启动超时（毫秒） */
     val launchTimeout: Long get() = getLong(ConfigKeys.APP_LAUNCH_TIMEOUT, 15000L)
