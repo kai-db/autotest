@@ -32,6 +32,7 @@ object TestConfig {
     }
 
     private fun defaultLoader(): ConfigLoader {
+        props.clear()
         try {
             val ctx = InstrumentationRegistry.getInstrumentation().context
             ctx.assets.open("test-config.properties").use { props.load(it) }
