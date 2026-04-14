@@ -34,7 +34,7 @@ com.autotest
 
 1. **AI 驱动** — 全程自主执行，不等人指示每一步
 2. **按用例执行** — `docs/testing/TEST_CASES.md` 是唯一用例来源
-3. **监工模式** — 迭代修复循环，直到 0 个 FAIL
+3. **监工模式** — 使用 `/loop 5m` 定时检查测试执行状态，防止 AI 卡住
 4. **最小人工介入** — 尽量减少人为操控，除验证码等必须环节外全部 AI 自主完成
 5. **修复必须合规** — 符合修复原则（见 `docs/testing/TEST_GUIDE.md` 第四节）
 
@@ -46,7 +46,8 @@ com.autotest
 
 ## 测试流程
 
-详细流程见 `docs/testing/TEST_GUIDE.md`（第六节：自动化闭环流程）。
+> 详细流程见 `docs/testing/TEST_GUIDE.md`（第五节：自动化闭环流程）。
+> **监工模式**：测试期间使用 `/loop 5m` 每 5 分钟检查 AI 执行状态，发现卡住时自动恢复。
 
 ```
 Phase 1: 确认环境（设备在线 → App 可启动）

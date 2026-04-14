@@ -299,7 +299,9 @@ flakySafely(
 
 ## AI 驱动测试（Claude Code + mobile-mcp）
 
-框架配合 mobile-mcp 实现 AI 驱动的交互式测试，详见 `docs/05-AI测试手册.md`。
+框架配合 mobile-mcp 实现 AI 驱动的交互式测试，详见 `docs/testing/TEST_GUIDE.md` 及 `docs/05-AI测试手册.md`。
+
+**监工模式**：测试期间使用 `/loop 5m` 每 5 分钟检查 AI 执行状态，防止卡住自动恢复。
 
 ---
 
