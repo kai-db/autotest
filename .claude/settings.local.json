@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(awk -F: '{sum+=$NF} END {print \"Total test methods: \" sum}')",
+      "Bash(awk -F: '{sum += $2} END {print \"Total @Test methods:\", sum}')"
+    ]
+  }
+}
