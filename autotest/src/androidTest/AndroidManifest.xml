@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Android 11+ 包可见性：允许 test APK 查询并启动被测 App（跨进程 UiAutomator 测试） -->
+    <queries>
+        <package android:name="com.tm.security.wallet" />
+    </queries>
+
+</manifest>

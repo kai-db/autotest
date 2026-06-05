@@ -135,4 +135,33 @@ class MonitorModeTest {
         assertEquals(1, failures.size)
         assertEquals("TC-002 失败", failures[0].name)
     }
+
+    @Test
+    fun preflight_passesWhenAllChecksPass() {
+        val result = monitor.preflight(
+            "设备在线" to { true },
+            "App 已安装" to { true }
+        )
+        assertTrue(result.passed)
+        assertEquals(0, result.failedChecks.size)
+    }
+
+    @Test
+    fun preflight_failsAndCollectsFailedChecks() {
+        val result = monitor.preflight(
+            "设备在线" to { true },
+            "App 已安装" to { false }
+        )
+        assertFalse(result.passed)
+        assertEquals(listOf("App 已安装"), result.failedChecks)
+    }
+
+    @Test
+    fun preflight_treatsThrowingCheckAsFailed() {
+        val result = monitor.preflight(
+            "屏幕解锁" to { throw RuntimeException("boom") }
+        )
+        assertFalse(result.passed)
+        assertEquals(listOf("屏幕解锁"), result.failedChecks)
+    }
 }
