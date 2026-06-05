@@ -57,9 +57,13 @@ private fun isAllowed(e: Throwable, allowed: Set<Class<out Throwable>>): Boolean
     return allowed.any { it.isInstance(e) }
 }
 
+/**
+ * 默认可重试异常：仅 UI 时序类（断言未通过、状态尚未就绪）。
+ *
+ * 刻意不含 [NullPointerException] / [RuntimeException]——它们几乎总是真实 bug，
+ * 自动重试只会拖到超时后才报错、反而掩盖根因。确需放宽时由调用方显式传 [allowedExceptions]。
+ */
 val DEFAULT_ALLOWED_EXCEPTIONS: Set<Class<out Throwable>> = setOf(
     AssertionError::class.java,
-    IllegalStateException::class.java,
-    NullPointerException::class.java,
-    RuntimeException::class.java
+    IllegalStateException::class.java
 )

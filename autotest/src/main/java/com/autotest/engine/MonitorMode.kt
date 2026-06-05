@@ -65,6 +65,47 @@ class MonitorMode(
         val fixDescription: String
     )
 
+    data class PreflightResult(
+        val passed: Boolean,
+        val failedChecks: List<String>
+    )
+
+    /**
+     * Phase 1 前置检查：开跑前校验环境就绪（设备在线 / App 已安装 / 屏幕解锁 / 已登录等）。
+     *
+     * 检查项由调用方注入，使引擎不依赖具体设备能力、便于单测：
+     * ```
+     * val d = DeviceActions.create(logger)
+     * val pre = monitor.preflight(
+     *     "App 已安装" to { d.isAppInstalled(pkg) },
+     *     "屏幕已解锁" to { d.isScreenUnlocked() }
+     * )
+     * if (!pre.passed) return  // 中止本轮，避免一连串假 FAIL
+     * ```
+     * 任一检查返回 false 或抛异常即视为不通过。
+     */
+    fun preflight(vararg checks: Pair<String, () -> Boolean>): PreflightResult {
+        logger.i("Monitor", "══════ Phase 1: 前置检查（${checks.size} 项）══════")
+        val failed = mutableListOf<String>()
+        checks.forEach { (name, check) ->
+            val ok = try {
+                check()
+            } catch (e: Throwable) {
+                logger.e("Monitor", "前置检查「$name」执行异常: ${e.message}", e)
+                false
+            }
+            if (ok) {
+                logger.i("Monitor", "  ✅ $name")
+            } else {
+                logger.e("Monitor", "  ❌ $name")
+                failed.add(name)
+            }
+        }
+        val passed = failed.isEmpty()
+        logger.i("Monitor", "══════ Phase 1 ${if (passed) "通过" else "不通过（${failed.size} 项失败）"} ══════")
+        return PreflightResult(passed, failed)
+    }
+
     /**
      * Phase 2: 执行一轮全量测试。
      * 铁律7：全量跑，不跳过任何用例。

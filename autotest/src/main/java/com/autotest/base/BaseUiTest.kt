@@ -58,14 +58,22 @@ abstract class BaseUiTest {
         TestConfig.init()
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         context = ApplicationProvider.getApplicationContext()
+        // 被测 App 可能永不进入 idle（消息轮询/动画），UiAutomator 默认每次查找前等 idle 10s 会拖死查找；置 0 立即查找
+        androidx.test.uiautomator.Configurator.getInstance().waitForIdleTimeout = 0L
         IdlingRegistry.getInstance().register(idlingResource)
 
         logger = DefaultTestLogger(logDir = TestConfig.screenshotDir)
+        interceptors.logger = logger
+        val screenshotInterceptor = ScreenshotInterceptor(logger = logger)
         interceptors.addAll(
             DialogDismissInterceptor(logger),
             LoggingInterceptor(logger),
-            ScreenshotInterceptor()
+            screenshotInterceptor
         )
+        // 失败截图回填报告，补全证据链
+        reportCollector.screenshotProvider = {
+            screenshotInterceptor.getAllScreenshots().values.toList()
+        }
 
         logger.i("BaseUiTest", "setUp 完成，设备: ${android.os.Build.MODEL}")
     }
@@ -100,8 +108,9 @@ abstract class BaseUiTest {
         pressHome()
         sleep(300)
         val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-            ?: error("找不到启动 Intent，请确认包名: $packageName")
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            ?: error("找不到启动 Intent，请确认包名: $packageName（跨进程测外部 App 时需在 androidTest manifest 声明 <queries>）")
+        // 从非 Activity context（instrumentation）启动外部 App 必须带 NEW_TASK；CLEAR_TASK 也要求与 NEW_TASK 同用
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         context.startActivity(intent)
         device.waitForApp(packageName, timeout)
     }

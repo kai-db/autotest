@@ -116,8 +116,18 @@ object TestConfig {
     /** 底部 Tab 文本列表 */
     val bottomTabs: List<String> get() = getList(ConfigKeys.APP_BOTTOM_TABS)
 
-    /** 截图保存目录 */
-    val screenshotDir: String get() = getString(ConfigKeys.APP_SCREENSHOT_DIR, "/sdcard/Pictures/autotest")
+    /**
+     * 截图/报告/日志保存目录。
+     * 未显式配置时默认用 **app 私有外部目录**（`getExternalFilesDir`）——
+     * Android 10+ scoped storage 下写公共目录（如 /sdcard/Pictures）会 EPERM，私有目录免权限。
+     */
+    val screenshotDir: String
+        get() {
+            val configured = getString(ConfigKeys.APP_SCREENSHOT_DIR)
+            if (configured.isNotEmpty()) return configured
+            val ctx = InstrumentationRegistry.getInstrumentation().context
+            return (ctx.getExternalFilesDir("autotest") ?: ctx.filesDir).absolutePath
+        }
 
     /** 是否在失败时自动截图 */
     val screenshotOnFailure: Boolean get() = getBoolean(ConfigKeys.APP_SCREENSHOT_ON_FAILURE, true)

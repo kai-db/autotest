@@ -1,5 +1,7 @@
 package com.autotest.intercept
 
+import com.autotest.log.TestLogger
+
 /**
  * 拦截器链，管理多个拦截器的注册和触发。
  * 所有拦截器按注册顺序执行，单个拦截器异常不影响其他拦截器和主逻辑。
@@ -7,6 +9,12 @@ package com.autotest.intercept
 class InterceptorChain {
 
     private val interceptors = mutableListOf<Interceptor>()
+
+    /**
+     * 可选日志器：设置后，被忽略的拦截器异常会留痕。
+     * 默认 null 保持原有静默行为（向后兼容）；生产路径由 [com.autotest.base.BaseUiTest] 注入。
+     */
+    var logger: TestLogger? = null
 
     fun add(interceptor: Interceptor) {
         interceptors.add(interceptor)
@@ -63,8 +71,9 @@ class InterceptorChain {
     private inline fun safely(block: () -> Unit) {
         try {
             block()
-        } catch (_: Throwable) {
-            // 拦截器异常不影响主流程
+        } catch (e: Throwable) {
+            // 拦截器异常不影响主流程，但留痕避免静默吞错
+            logger?.w("Interceptor", "拦截器异常已忽略: ${e.message}")
         }
     }
 }

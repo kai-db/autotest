@@ -9,11 +9,17 @@ class ReportCollector : TestWatcher() {
     private val failures = mutableListOf<Failure>()
     private val stepResults = mutableListOf<StepResult>()
 
+    /**
+     * 失败截图路径提供器：由 [com.autotest.base.BaseUiTest] 接到 ScreenshotInterceptor，
+     * 测试失败时回填 [Failure.screenshots]，补全证据链。默认 null（无来源时不改变原行为）。
+     */
+    var screenshotProvider: (() -> List<String>)? = null
+
     override fun starting(description: Description) {
         startTime = System.currentTimeMillis()
     }
 
-    override fun failed(e: Throwable?, description: Description) {
+    public override fun failed(e: Throwable?, description: Description) {
         val message = e?.message ?: e?.toString() ?: "unknown"
         val flakyType = FlakyClassifier.classify(message)
         failures.add(
@@ -21,7 +27,7 @@ class ReportCollector : TestWatcher() {
                 className = description.className ?: "",
                 methodName = description.methodName ?: "",
                 message = message,
-                screenshots = null,
+                screenshots = screenshotProvider?.invoke()?.takeIf { it.isNotEmpty() },
                 flakyType = flakyType
             )
         )

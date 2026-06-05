@@ -34,7 +34,9 @@ class LogcatInterceptor(
         // 每个步骤开始前清空 logcat，只收集本步骤的日志
         try {
             device.executeShellCommand("logcat -c")
-        } catch (_: Throwable) {}
+        } catch (e: Throwable) {
+            logger.w("Logcat", "清空 logcat 失败: ${e.message}")
+        }
     }
 
     override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {

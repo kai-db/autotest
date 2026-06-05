@@ -59,8 +59,9 @@ class DefaultTestLogger(
         if (logToFile) {
             try {
                 logFile.appendText("$formatted\n")
-            } catch (_: Exception) {
-                // 文件写入失败不影响测试
+            } catch (e: Exception) {
+                // 文件写入失败不影响测试；留痕到 logcat（不可再走本 logger，避免递归）
+                Log.w("AutoTest", "日志文件写入失败: ${e.message}")
             }
         }
     }

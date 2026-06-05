@@ -3,6 +3,7 @@ package com.autotest.device
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.autotest.log.TestLogger
 
 /**
  * 设备操作封装。
@@ -11,8 +12,20 @@ import androidx.test.uiautomator.UiDevice
  */
 class DeviceActions(
     private val device: UiDevice,
-    private val context: Context
+    private val context: Context,
+    private val logger: TestLogger? = null
 ) {
+
+    /**
+     * 校验拼入 shell 命令的参数（包名/权限名）仅含安全字符，防止命令注入。
+     * 输入通常来自 TestConfig（测试者自填），此处为防御性加固。
+     */
+    private fun requireSafeArg(value: String): String {
+        require(value.matches(Regex("^[a-zA-Z0-9._]+$"))) {
+            "非法参数（仅允许字母/数字/点/下划线）: $value"
+        }
+        return value
+    }
 
     // ==================== 网络控制 ====================
 
@@ -45,26 +58,26 @@ class DeviceActions(
     // ==================== App 管理 ====================
 
     fun clearAppData(packageName: String) {
-        device.executeShellCommand("pm clear $packageName")
+        device.executeShellCommand("pm clear ${requireSafeArg(packageName)}")
     }
 
     fun forceStopApp(packageName: String) {
-        device.executeShellCommand("am force-stop $packageName")
+        device.executeShellCommand("am force-stop ${requireSafeArg(packageName)}")
     }
 
     fun isAppInstalled(packageName: String): Boolean {
-        val output = device.executeShellCommand("pm list packages $packageName")
+        val output = device.executeShellCommand("pm list packages ${requireSafeArg(packageName)}")
         return output.contains(packageName)
     }
 
     // ==================== 权限管理 ====================
 
     fun grantPermission(packageName: String, permission: String) {
-        device.executeShellCommand("pm grant $packageName $permission")
+        device.executeShellCommand("pm grant ${requireSafeArg(packageName)} ${requireSafeArg(permission)}")
     }
 
     fun revokePermission(packageName: String, permission: String) {
-        device.executeShellCommand("pm revoke $packageName $permission")
+        device.executeShellCommand("pm revoke ${requireSafeArg(packageName)} ${requireSafeArg(permission)}")
     }
 
     fun grantAllPermissions(packageName: String) {
@@ -81,8 +94,9 @@ class DeviceActions(
         commonPermissions.forEach { perm ->
             try {
                 grantPermission(packageName, perm)
-            } catch (_: Throwable) {
-                // 忽略不支持的权限
+            } catch (e: Throwable) {
+                // 某些权限在当前设备/SDK 不存在，授予失败属预期；仅留痕不中断
+                logger?.w("Device", "权限授予失败（可能不支持）: $perm — ${e.message}")
             }
         }
     }
@@ -170,18 +184,19 @@ class DeviceActions(
     }
 
     fun dumpCrashLog(packageName: String): String {
-        val safePkg = packageName.replace("'", "\\'")
+        val safePkg = requireSafeArg(packageName)
         return device.executeShellCommand(
             "sh -c 'logcat -d -t 500 | grep -i \"$safePkg\\|FATAL\\|crash\\|exception\"'"
         )
     }
 
     companion object {
-        fun create(): DeviceActions {
+        fun create(logger: TestLogger? = null): DeviceActions {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             return DeviceActions(
                 device = UiDevice.getInstance(instrumentation),
-                context = instrumentation.context
+                context = instrumentation.context,
+                logger = logger
             )
         }
     }

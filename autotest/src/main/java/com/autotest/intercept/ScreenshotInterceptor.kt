@@ -3,6 +3,7 @@ package com.autotest.intercept
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
+import com.autotest.log.TestLogger
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -14,7 +15,8 @@ import java.util.Locale
  */
 class ScreenshotInterceptor(
     private val screenshotOnFailure: Boolean = true,
-    private val screenshotOnSuccess: Boolean = false
+    private val screenshotOnSuccess: Boolean = false,
+    private val logger: TestLogger? = null
 ) : Interceptor {
 
     private val device: UiDevice by lazy {
@@ -63,7 +65,8 @@ class ScreenshotInterceptor(
             device.takeScreenshot(file)
             lastScreenshotPath = file.absolutePath
             file.absolutePath
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            logger?.e("Screenshot", "截图失败: $name", e)
             null
         }
     }
