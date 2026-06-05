@@ -77,9 +77,30 @@
 
 ---
 
+## 框架优化（基于实战，A 类）
+
+修完 3 个 bug 后，针对实战暴露的性能/证据点继续优化（3 项均仍 3/3 PASS）：
+
+| 项 | 内容 | 效果 |
+|---|------|------|
+| A1 弹窗扫描提速 | `DialogDismissInterceptor` 每步 23 次 `findObject` → 1 次 `findObjects` 本地匹配 | 见下表 |
+| A3 截图策略 | 成功零图、失败才截并回填 `StepResult`/`Failure`（证据可追溯） | 图量大减，"成功不截、失败再看" |
+| A2 报告回流 | 测试结果由 gradle 主机报告 `build/reports/androidTests/connected/debug/index.html` 自动回流 | 无需 adb pull（test APK 跑完即卸 + scoped storage 不可行）；框架富报告/截图回流需 TestStorage，暂缓 |
+
+A1 提速实测（connectedAndroidTest，仍 3/3 PASS）：
+
+| 用例 | 优化前 | 优化后 | 降幅 |
+|---|---|---|---|
+| tcS001 冷启动 | 9.1s | 7.1s | −22% |
+| tcS002 4-Tab 导航 | 30.2s | 6.3s | −79% |
+| tcS003 登录态 | 18.8s | 5.4s | −71% |
+| **合计** | **58s** | **19s** | **−67%** |
+
+---
+
 ## 结论
 
 黑盒探索 **8/8 PASS**（P0×3 + P1×5）；白盒固化 **3/3 PASS**（connectedAndroidTest 真机）。
-**M0（环境）→ M1（黑盒探索）→ M2（白盒固化回归）完整闭环已跑通**，并修复 3 个框架级真实 bug。
+**M0（环境）→ M1（黑盒探索）→ M2（白盒固化回归）完整闭环已跑通**，修复 3 个框架级真实 bug，并完成 A 类性能/证据优化（整体提速 67%）。
 
 严守硬约束：全程仅 terminate→launch，未 clearAppData / 登出 / 切环境 / 发送消息。

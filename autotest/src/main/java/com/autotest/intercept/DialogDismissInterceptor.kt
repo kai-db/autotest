@@ -58,25 +58,25 @@ class DialogDismissInterceptor(
     }
 
     private fun dismissDialogs() {
-        // 先检查系统权限弹窗（通过 resource-id 精确匹配）
-        for (resId in PERMISSION_RES_IDS) {
-            val btn = device.findObject(By.res(resId))
-            if (btn != null) {
-                logger.d("DialogDismiss", "关闭权限弹窗: $resId")
-                btn.click()
-                device.waitForIdle(1000)
-                return
+        // 一次抓取当前所有可点击元素后本地匹配，避免对每个候选 res-id/文本各做一次跨进程树遍历。
+        // 原实现每步多达 23 次 findObject；被测 App 永不 idle 时这是主要耗时来源。
+        val clickables = device.findObjects(By.clickable(true))
+        if (clickables.isEmpty()) return
+
+        // 系统权限弹窗：resource-id 精确匹配
+        for (obj in clickables) {
+            val res = obj.resourceName ?: continue
+            if (res in PERMISSION_RES_IDS) {
+                logger.d("DialogDismiss", "关闭权限弹窗: $res")
+                obj.click(); device.waitForIdle(1000); return
             }
         }
-
-        // 再检查文本匹配的弹窗
-        for (text in dismissTexts) {
-            val btn = device.findObject(By.text(text))
-            if (btn != null && btn.isClickable) {
+        // App 内弹窗：文本匹配
+        for (obj in clickables) {
+            val text = obj.text ?: continue
+            if (dismissTexts.any { text == it || text.contains(it) }) {
                 logger.d("DialogDismiss", "关闭弹窗: \"$text\"")
-                btn.click()
-                device.waitForIdle(1000)
-                return
+                obj.click(); device.waitForIdle(1000); return
             }
         }
     }

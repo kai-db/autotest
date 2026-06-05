@@ -53,6 +53,13 @@ class InterceptorChain {
     }
 
     /**
+     * 取某步骤的截图路径（若链中有 ScreenshotInterceptor 且该步截过图）。
+     * 默认只在步骤失败时截图，所以成功步骤通常返回 null——失败才有图、成功零图。
+     */
+    fun stepScreenshotPath(stepNumber: String): String? =
+        interceptors.filterIsInstance<ScreenshotInterceptor>().firstOrNull()?.getScreenshotPath(stepNumber)
+
+    /**
      * 带拦截器的操作执行。自动触发 before/after/onFailure。
      */
     fun <T> intercept(actionName: String, details: String = "", action: () -> T): T {

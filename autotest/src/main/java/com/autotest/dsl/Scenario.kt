@@ -28,7 +28,9 @@ class Scenario(
                         stepName = step.name,
                         stepNumber = stepNumber,
                         durationMs = duration,
-                        passed = true
+                        passed = true,
+                        // 成功步骤默认不截图，这里通常为 null（零图）
+                        screenshotPath = interceptors?.stepScreenshotPath(stepNumber)
                     )
                 )
             } catch (e: Throwable) {
@@ -42,7 +44,9 @@ class Scenario(
                         stepNumber = stepNumber,
                         durationMs = duration,
                         passed = false,
-                        error = e.message
+                        error = e.message,
+                        // 失败步骤已由 ScreenshotInterceptor 截图，回填路径到报告（证据可追溯）
+                        screenshotPath = interceptors?.stepScreenshotPath(stepNumber)
                     )
                 )
                 throw e
