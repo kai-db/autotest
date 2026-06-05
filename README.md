@@ -2,7 +2,7 @@
 
 可复用的 Android 自动化测试框架，基于 **Espresso + UiAutomator**，配合 **Claude Code + mobile-mcp** 实现 AI 驱动的测试。
 
-**v1.5.0** | 15 个模块 | 74 条单元测试 | 145.9K AAR
+**v1.5.1** | 15 个模块 | 90 条单元测试 | AAR 发布至 mavenLocal
 
 ---
 
@@ -23,7 +23,7 @@ cd autotest
 allprojects { repositories { mavenLocal() } }
 
 // app/build.gradle
-androidTestImplementation 'com.autotest:autotest:1.5.0'
+androidTestImplementation 'com.autotest:autotest:1.5.1'
 ```
 
 ---
@@ -321,4 +321,4 @@ flakySafely(
 
 ## 版本
 
-当前版本 `1.5.0`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
+当前版本 `1.5.1`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
