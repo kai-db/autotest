@@ -59,6 +59,10 @@ class InterceptorChain {
     fun stepScreenshotPath(stepNumber: String): String? =
         interceptors.filterIsInstance<ScreenshotInterceptor>().firstOrNull()?.getScreenshotPath(stepNumber)
 
+    /** 取某步骤的 logcat 路径（若链中有 LogcatInterceptor 且该步收集过；默认仅失败步骤收集）。 */
+    fun stepLogcatPath(stepNumber: String): String? =
+        interceptors.filterIsInstance<LogcatInterceptor>().firstOrNull()?.getLogcatPath(stepNumber)
+
     /**
      * 带拦截器的操作执行。自动触发 before/after/onFailure。
      */

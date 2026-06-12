@@ -12,7 +12,10 @@ import androidx.test.uiautomator.UiDevice
 import com.autotest.config.TestConfig
 import com.autotest.intercept.DialogDismissInterceptor
 import com.autotest.intercept.InterceptorChain
+import com.autotest.intercept.LogcatInterceptor
 import com.autotest.intercept.LoggingInterceptor
+import com.autotest.intercept.MemoryInterceptor
+import com.autotest.intercept.PerformanceInterceptor
 import com.autotest.intercept.ScreenshotInterceptor
 import com.autotest.lifecycle.TestLifecycleManager
 import com.autotest.log.DefaultTestLogger
@@ -21,6 +24,7 @@ import com.autotest.report.ReportCollector
 import com.autotest.report.ReportWriter
 import com.autotest.runner.RunnerInfo
 import com.autotest.util.ScreenshotRule
+import com.autotest.util.TestArtifacts
 import com.autotest.util.allowPermission
 import com.autotest.util.waitForApp
 import org.junit.After
@@ -63,12 +67,16 @@ abstract class BaseUiTest {
         IdlingRegistry.getInstance().register(idlingResource)
 
         logger = DefaultTestLogger(logDir = TestConfig.screenshotDir)
+        TestArtifacts.cleanup(File(TestConfig.screenshotDir))  // 清理旧产物，防截图/日志/报告无限堆积
         interceptors.logger = logger
         val screenshotInterceptor = ScreenshotInterceptor(logger = logger)
         interceptors.addAll(
             DialogDismissInterceptor(logger),
             LoggingInterceptor(logger),
-            screenshotInterceptor
+            screenshotInterceptor,
+            LogcatInterceptor(logger),       // 步骤失败时自动收集设备 logcat（含 crash/FATAL）
+            PerformanceInterceptor(logger),  // 步骤耗时超阈值告警
+            MemoryInterceptor(logger, TestConfig.packageName)  // 每步采集 PSS，相对基线增长超阈值告警（泄漏）
         )
         // 失败截图回填报告，补全证据链
         reportCollector.screenshotProvider = {

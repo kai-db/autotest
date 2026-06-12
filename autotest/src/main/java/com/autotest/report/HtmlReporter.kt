@@ -23,6 +23,10 @@ object HtmlReporter {
             val statusClass = if (step.passed) "pass" else "fail"
             val statusText = if (step.passed) "PASS" else "FAIL"
             val errorCell = step.error?.let { "<span class=\"error-msg\">${escapeHtml(it)}</span>" } ?: "-"
+            val evidence = listOfNotNull(
+                step.screenshotPath?.let { "📷 ${escapeHtml(it.substringAfterLast('/'))}" },
+                step.logcatPath?.let { "📄 ${escapeHtml(it.substringAfterLast('/'))}" }
+            ).joinToString("<br>").ifEmpty { "-" }
             """<tr class="$statusClass">
                 <td>${escapeHtml(step.stepNumber)}</td>
                 <td>${escapeHtml(step.scenarioName)}</td>
@@ -30,6 +34,7 @@ object HtmlReporter {
                 <td><span class="badge $statusClass">$statusText</span></td>
                 <td>${step.durationMs}ms</td>
                 <td>$errorCell</td>
+                <td>$evidence</td>
             </tr>"""
         }
 
@@ -112,7 +117,7 @@ tr.fail td { background: #fef2f2; }
 
 <h2>Steps</h2>
 <table>
-<tr><th>#</th><th>Scenario</th><th>Step</th><th>Status</th><th>Duration</th><th>Error</th></tr>
+<tr><th>#</th><th>Scenario</th><th>Step</th><th>Status</th><th>Duration</th><th>Error</th><th>证据</th></tr>
 $stepsHtml
 </table>
 

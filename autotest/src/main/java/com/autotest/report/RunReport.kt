@@ -51,5 +51,6 @@ data class StepResult(
     val durationMs: Long,
     val passed: Boolean,
     val error: String? = null,
-    val screenshotPath: String? = null
+    val screenshotPath: String? = null,
+    val logcatPath: String? = null
 )
