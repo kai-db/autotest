@@ -6,22 +6,27 @@
 
 ```
 com.autotest
-├── base/          BaseUiTest + BaseActivityTest（测试基类）
+├── base/          BaseUiTest + BaseActivityTest（测试基类，含自愈定位/AI 断言注入点）
 ├── action/        AppActions（通用操作：Tab 切换、引导页跳过）
-├── assertion/     AppAssertions（通用断言：前台、文本、控件）
+├── assertion/     AppAssertions + AiAsserter（AI 软断言，评估器外部注入）
+├── bridge/        固化桥：CachedCase 用例缓存 + CaseCacheStore + CacheReplay 回放
 ├── config/        分层配置 + Environment（多环境管理）
 ├── data/          TestDataManager + TestAccount（测试数据管理）
 ├── device/        DeviceActions（网络/权限/屏幕/App管理/Logcat）
-├── dsl/           Scenario + Step + BaseScenario（DSL + 可复用场景）
-├── engine/        TestRunner + TestSuite + MonitorMode + TestCaseParser
-├── intercept/     InterceptorChain + 5种拦截器（弹窗/日志/截图/性能/Logcat）
+├── diagnosis/     LogcatAnalyzer（失败根因：crash/ANR/OOM 签名）
+├── dsl/           Scenario + Step + BaseScenario（DSL：step/flakyStep/repeat/forEach）
+├── engine/        TestRunner + TestSuite + MonitorMode（轮次超时）+ TestCaseParser
+├── intercept/     双链拦截器：watcher 观察 + behavior 失败恢复（6 种内置）
 ├── lifecycle/     TestLifecycleHook + Manager（测试生命周期钩子）
 ├── log/           TestLogger + DefaultTestLogger（统一日志：分级+文件+Logcat）
-├── report/        RunReport + ReportWriter + HtmlReporter + ReportSummary
+├── report/        RunReport + HtmlReporter（AI 断言/自愈事件/根因独立 section）
 ├── runner/        RunnerInfo + DeviceSelector（设备信息）
-├── stability/     FlakyClassifier + RetryRunner + RetryPolicy（稳定性治理）
-└── util/          EspressoExt + UiAutomatorExt + WaitUtil + ScreenshotRule
+├── selector/      复合选择器 DSL + 指纹自愈 + 三级降级定位（SelfHealingLocator）
+├── stability/     FlakyClassifier 规则链 + AdaptiveRetryPolicy + TestHistoryStore
+└── util/          EspressoExt + UiAutomatorExt + WaitUtil + ScreenshotRule + TestArtifacts
 ```
+
+> AI 驱动相关机制（缓存回放/自愈/软断言/历史重试）的使用方式见 `docs/09-AI驱动测试机制.md`。
 
 ## 构建与发布
 
@@ -37,6 +42,8 @@ com.autotest
 3. **监工模式** — 使用 `/loop 5m` 定时检查测试执行状态，防止 AI 卡住
 4. **最小人工介入** — 尽量减少人为操控，除验证码等必须环节外全部 AI 自主完成
 5. **修复必须合规** — 符合修复原则（见 `docs/testing/TEST_GUIDE.md` 第四节）
+6. **先读知识库** — AI 测试 session 先读 `docs/testing/app-knowledge/`（元素表/弹窗/**危险操作清单**），探索产物回写
+7. **危险操作 pre-action 比对** — 点击前比对 `app-knowledge/dangerous-ops.md`，命中先停（钱包 App 误操作不可逆）；禁止清数据/登出/切环境
 
 ## 测试目标
 
