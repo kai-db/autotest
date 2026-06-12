@@ -30,6 +30,13 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    sourceSets {
+        androidTest {
+            // 用例缓存（docs/testing/cache）随 test APK 打包：缓存进版本库、回放零手工 push
+            assets.srcDirs += rootProject.file('docs/testing/cache')
+        }
+    }
 }
 
 dependencies {

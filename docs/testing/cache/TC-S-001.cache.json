@@ -1,0 +1,20 @@
+{
+  "caseId": "TC-S-001",
+  "description": "冷启动停在消息页",
+  "appPackage": "com.tm.security.wallet",
+  "source": "ai-exploration",
+  "createdAtMs": 1781240000000,
+  "steps": [
+    { "name": "强停 App", "action": "TERMINATE_APP" },
+    { "name": "冷启动 DeBox", "action": "LAUNCH_APP" },
+    { "name": "等待消息页加载（顶部分类「全部」）", "action": "WAIT_TEXT", "payload": "全部", "timeoutMs": 15000 },
+    { "name": "验证消息 Tab 存在", "action": "ASSERT_VISIBLE", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvDao", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[0,2126][270,2294]" } },
+    { "name": "验证朋友 Tab 存在", "action": "ASSERT_VISIBLE", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvFriend", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[270,2126][540,2294]" } },
+    { "name": "验证发现 Tab 存在", "action": "ASSERT_VISIBLE", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvBrowse", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[540,2126][810,2294]" } },
+    { "name": "验证我的 Tab 存在", "action": "ASSERT_VISIBLE", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvMine", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[810,2126][1080,2294]" } }
+  ]
+}

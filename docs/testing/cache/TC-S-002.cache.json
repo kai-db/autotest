@@ -1,0 +1,24 @@
+{
+  "caseId": "TC-S-002",
+  "description": "底部 Tab 导航",
+  "appPackage": "com.tm.security.wallet",
+  "source": "ai-exploration",
+  "createdAtMs": 1781240000000,
+  "steps": [
+    { "name": "强停 App", "action": "TERMINATE_APP" },
+    { "name": "冷启动 DeBox", "action": "LAUNCH_APP" },
+    { "name": "等待消息页加载", "action": "WAIT_TEXT", "payload": "全部", "timeoutMs": 15000 },
+    { "name": "点「朋友」Tab", "action": "CLICK", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvFriend", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[270,2126][540,2294]" } },
+    { "name": "验证朋友页（新增关注）", "action": "WAIT_TEXT", "payload": "新增关注", "timeoutMs": 8000 },
+    { "name": "点「发现」Tab", "action": "CLICK", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvBrowse", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[540,2126][810,2294]" } },
+    { "name": "验证发现页（行情）", "action": "WAIT_TEXT", "payload": "行情", "timeoutMs": 8000 },
+    { "name": "点「我的」Tab", "action": "CLICK", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvMine", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[810,2126][1080,2294]" } },
+    { "name": "验证我的页（总资产）", "action": "WAIT_TEXT", "payload": "总资产", "timeoutMs": 8000 },
+    { "name": "点「消息」Tab 回首页", "action": "CLICK", "timeoutMs": 5000,
+      "target": { "text": "", "resourceId": "com.tm.security.wallet:id/tvDao", "contentDesc": "", "className": "android.widget.ImageView", "packageName": "com.tm.security.wallet", "bounds": "[0,2126][270,2294]" } },
+    { "name": "验证回到消息页", "action": "WAIT_TEXT", "payload": "全部", "timeoutMs": 8000 }
+  ]
+}
