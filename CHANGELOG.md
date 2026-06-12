@@ -2,6 +2,33 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.6.0] - 2026-06-12
+
+> 主题：把「AI 探索」和「确定性回归」焊接起来（机制详见 `docs/09-AI驱动测试机制.md`）。
+> 借鉴对象：midscene.js / Healenium / Maestro / Marathon / Kaspresso / AppAgent / Mobile-Agent。
+
+### Added
+- **selector 包**：SelectorSpec 复合选择器 DSL（与/或/非 + exact/contains/startsWith/regex）；
+  HealingEngine 指纹自愈（加权属性相似度，零 LLM 成本）；FingerprintStore 指纹库落盘；
+  SelfHealingLocator 三级降级定位（确定性 → 指纹自愈 → AI 兜底接口），非确定性命中显式记账
+- **bridge 包（固化桥）**：CachedCase/CachedStep 用例缓存模型；CaseCacheStore
+  （READ_WRITE/READ_ONLY/WRITE_ONLY）；CacheReplay + UiReplayExecutor 确定性回放
+- **AI 软断言通道**：AiAsserter（默认 optional，FAIL 不挂测试）+ AiAssertionEvaluator 注入接口；
+  RunReport.aiAssertions/healingEvents；HtmlReporter 独立「AI 断言」「定位自愈事件」section
+- **stability**：TestHistoryStore 执行历史滚动窗口；AdaptiveRetryPolicy 按历史通过率算重试预算；
+  FlakyClassifier 自定义规则链 + 内置正则；RetryRunner 支持自适应模式与历史回写
+- **intercept**：BehaviorInterceptor 失败恢复链（与 watcher 链分离）；
+  DialogDismissInterceptor 兼任 behavior（步骤中途弹窗失败后再扫+重试）
+- **diagnosis 包**：LogcatAnalyzer 失败根因签名（crash/ANR/OOM/native），回填 Failure.rootCause
+- **engine**：MonitorMode.runRound(timeoutMs) 轮次硬超时（防 AI 监工闭环卡死）
+- **dsl**：ScenarioBuilder.forEach 数据驱动步骤
+- **intercept**：PerformanceInterceptor P50/P95 百分位 + PerfSummary；ScreenshotInterceptor 缩放/压缩
+- **docs**：`docs/09-AI驱动测试机制.md`；`docs/testing/app-knowledge/` 知识库
+  （页面元素模板 + **危险操作清单**）；TEST_GUIDE 新增危险操作 pre-action 比对铁律
+
+### Stats
+- 199 条单元测试 / 18 个模块
+
 ## [1.5.1] - 2026-04-14
 
 ### Fixed（代码审查修复 5 项）
