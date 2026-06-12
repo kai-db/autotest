@@ -2,6 +2,11 @@
 
 > 目标：服务 `Claude Code / Codex + mobile-mcp` 测 DeBox。
 > 原则：**当前阶段不改 autotest 核心源码**，只借 Kaspresso 的方法论、证据链、用例固化方式和外围工具思路。
+>
+> **状态更新（2026-06-12）**：「不改核心」的前提已被 v1.6 超越——双链拦截器、
+> 失败 dump 证据链、页面资产沉淀（`app-knowledge/`）、黑盒→白盒固化桥均已进核心代码，
+> 见 `docs/09-AI驱动测试机制.md`。本文保留作为借鉴来源的分析记录；
+> 第 2.1 节的 `screens.md` 思路已升级为 `app-knowledge/screens/` 知识库。
 
 ## 1. 结论
 

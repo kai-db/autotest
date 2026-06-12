@@ -1,7 +1,8 @@
 # 测试指南
 
-> 版本：v1.0 | 更新日期：2026-04-14
+> 版本：v1.1 | 更新日期：2026-06-12
 > 用例模板见 [TEST_CASES.md](TEST_CASES.md) | 结果模板见 [TEST_RESULTS.md](TEST_RESULTS.md)
+> 框架侧机制（缓存回放/自愈/软断言）见 [docs/09](../09-AI驱动测试机制.md)
 
 本目录是**测试规范**，定义怎么测、铁律、流程。每次实际测试在 `runs/` 下按 `日期-功能` 建文件夹。
 
@@ -14,13 +15,15 @@ docs/testing/
 ├── TEST_GUIDE.md          # 本文件：规范（稳定不变）
 ├── TEST_CASES.md          # 用例模板（稳定不变）
 ├── TEST_RESULTS.md        # 结果模板（稳定不变）
+├── app-knowledge/         # App 知识库（AI 探索沉淀，每轮回写）
+│   ├── README.md          #   知识库规范
+│   ├── dangerous-ops.md   #   危险操作清单（点击前必须比对）
+│   └── screens/           #   页面元素表（_template.md 为模板）
+├── cache/                 # 用例缓存（CachedCase JSON，AI 探索产出、回归回放）
 └── runs/                  # 每次测试一个文件夹
-    ├── 2026-04-14-smoke/
+    ├── 2026-06-12-RTC转CDN/
     │   ├── cases.md       # 本次用例（从模板拷贝或自定义）
     │   └── results.md     # 本次结果
-    ├── 2026-04-15-ai-chat-swap/
-    │   ├── cases.md
-    │   └── results.md
     └── ...
 ```
 
