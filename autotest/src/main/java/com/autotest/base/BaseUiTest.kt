@@ -133,6 +133,9 @@ abstract class BaseUiTest {
         reportCollector.healingEventsProvider = {
             if (locatorDelegate.isInitialized()) locator.events else emptyList()
         }
+        // 测试失败时取最近 logcat 做根因分析（crash/ANR/OOM 签名回填报告）
+        reportCollector.logcatProvider = { device.executeShellCommand("logcat -d -t 400") }
+        reportCollector.rootCausePackage = TestConfig.packageName
 
         logger.i("BaseUiTest", "setUp 完成，设备: ${android.os.Build.MODEL}")
     }

@@ -109,12 +109,15 @@ class MonitorMode(
     /**
      * Phase 2: 执行一轮全量测试。
      * 铁律7：全量跑，不跳过任何用例。
+     *
+     * @param timeoutMs 本轮硬超时（毫秒），0 表示不限。AI 驱动场景必须设：
+     *   被测 App 卡死/弹窗死循环时，超时让本轮以 FAIL 收尾而非永久挂起监工闭环。
      */
-    fun runRound(): RoundResult {
+    fun runRound(timeoutMs: Long = 0): RoundResult {
         val roundNumber = rounds.size + 1
         logger.i("Monitor", "══════ Phase 2: 第 $roundNumber 轮全量测试（${suite.getTestCount()} 条用例）══════")
 
-        val results = suite.runAll()
+        val results = if (timeoutMs <= 0) suite.runAll() else runAllWithTimeout(timeoutMs)
         val passed = results.count { it.passed }
         val failed = results.count { !it.passed }
 
@@ -130,6 +133,22 @@ class MonitorMode(
 
         logger.i("Monitor", "══════ Phase 2 结束: PASS $passed / FAIL $failed ══════")
         return round
+    }
+
+    /** 在独立线程跑全量并施加硬超时；超时记一条合成 FAIL（监工可据此进入修复阶段而非卡死） */
+    private fun runAllWithTimeout(timeoutMs: Long): List<TestCaseResult> {
+        val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+        return try {
+            executor.submit(java.util.concurrent.Callable { suite.runAll() })
+                .get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            logger.e("Monitor", "本轮执行超时（${timeoutMs}ms），疑似卡死，强制收尾")
+            listOf(TestCaseResult("ROUND_TIMEOUT", false, timeoutMs, "本轮执行超时（${timeoutMs}ms），疑似卡死"))
+        } catch (e: java.util.concurrent.ExecutionException) {
+            throw e.cause ?: e // 还原 suite 内抛出的原始异常
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     /**

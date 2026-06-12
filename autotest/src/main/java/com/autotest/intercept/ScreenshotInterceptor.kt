@@ -16,8 +16,17 @@ import java.util.Locale
 class ScreenshotInterceptor(
     private val screenshotOnFailure: Boolean = true,
     private val screenshotOnSuccess: Boolean = false,
-    private val logger: TestLogger? = null
+    private val logger: TestLogger? = null,
+    /** 截图缩放（0-1]：证据截图不需要原始分辨率，0.5 可省约 75% 存储 */
+    private val scale: Float = 0.5f,
+    /** PNG 压缩质量 1-100 */
+    private val quality: Int = 80
 ) : Interceptor {
+
+    init {
+        require(scale > 0f && scale <= 1f) { "scale 必须在 (0,1]，当前: $scale" }
+        require(quality in 1..100) { "quality 必须在 1..100，当前: $quality" }
+    }
 
     private val device: UiDevice by lazy {
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -62,7 +71,7 @@ class ScreenshotInterceptor(
             dir.mkdirs()
             val timestamp = dateFormat.format(Date())
             val file = File(dir, "${name}_$timestamp.png")
-            device.takeScreenshot(file)
+            device.takeScreenshot(file, scale, quality)
             lastScreenshotPath = file.absolutePath
             file.absolutePath
         } catch (e: Throwable) {

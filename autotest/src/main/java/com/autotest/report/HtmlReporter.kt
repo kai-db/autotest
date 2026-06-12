@@ -41,11 +41,15 @@ object HtmlReporter {
         val failuresHtml = report.failures.joinToString("\n") { f ->
             val shots = f.screenshots?.takeIf { it.isNotEmpty() }
                 ?.joinToString("<br>") { escapeHtml(it) } ?: "-"
+            val rootCause = f.rootCause?.let {
+                "<span class=\"badge fail\">${it.type.name}</span> ${escapeHtml(it.signature)}"
+            } ?: "-"
             """<tr>
                 <td>${escapeHtml(f.className)}</td>
                 <td>${escapeHtml(f.methodName)}</td>
                 <td>${escapeHtml(f.message)}</td>
                 <td>${f.flakyType?.name ?: "-"}</td>
+                <td>$rootCause</td>
                 <td>$shots</td>
             </tr>"""
         }
@@ -150,7 +154,7 @@ $stepsHtml
 ${if (report.failures.isNotEmpty()) """
 <h2>Failures</h2>
 <table>
-<tr><th>Class</th><th>Method</th><th>Message</th><th>Type</th><th>Screenshots</th></tr>
+<tr><th>Class</th><th>Method</th><th>Message</th><th>Type</th><th>根因</th><th>Screenshots</th></tr>
 $failuresHtml
 </table>
 """ else ""}

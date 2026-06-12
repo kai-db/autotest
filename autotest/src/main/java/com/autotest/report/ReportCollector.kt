@@ -22,6 +22,15 @@ class ReportCollector : TestWatcher() {
      */
     var healingEventsProvider: (() -> List<com.autotest.selector.LocatorEvent>)? = null
 
+    /**
+     * logcat 提供器：测试失败时取设备日志做根因分析（crash/ANR/OOM 签名），
+     * 回填 [Failure.rootCause]。默认 null（不分析）。
+     */
+    var logcatProvider: (() -> String)? = null
+
+    /** 根因分析时的包名过滤（ANR 判定用），由 BaseUiTest 注入 */
+    var rootCausePackage: String? = null
+
     override fun starting(description: Description) {
         startTime = System.currentTimeMillis()
     }
@@ -29,13 +38,19 @@ class ReportCollector : TestWatcher() {
     public override fun failed(e: Throwable?, description: Description) {
         val message = e?.message ?: e?.toString() ?: "unknown"
         val flakyType = FlakyClassifier.classify(message)
+        val rootCause = try {
+            logcatProvider?.invoke()?.let { com.autotest.diagnosis.LogcatAnalyzer.analyze(it, rootCausePackage) }
+        } catch (ex: Throwable) {
+            null // 根因分析失败不能影响失败记录本身（logcat 不可得时降级为无根因）
+        }
         failures.add(
             Failure(
                 className = description.className ?: "",
                 methodName = description.methodName ?: "",
                 message = message,
                 screenshots = screenshotProvider?.invoke()?.takeIf { it.isNotEmpty() },
-                flakyType = flakyType
+                flakyType = flakyType,
+                rootCause = rootCause
             )
         )
     }

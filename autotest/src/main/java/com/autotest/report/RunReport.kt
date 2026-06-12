@@ -45,7 +45,9 @@ data class Failure(
     val methodName: String,
     val message: String,
     val screenshots: List<String>? = null,
-    val flakyType: com.autotest.stability.FlakyType? = null
+    val flakyType: com.autotest.stability.FlakyType? = null,
+    /** 从 logcat 识别的根因（crash/ANR/OOM），null 表示无明确签名 */
+    val rootCause: com.autotest.diagnosis.RootCause? = null
 )
 
 data class StepResult(

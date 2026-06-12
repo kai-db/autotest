@@ -109,6 +109,22 @@ class ScenarioBuilder(private val name: String) {
         }
     }
 
+    /**
+     * 数据驱动步骤：数据集 × 同一操作展开为多个独立步骤，
+     * 每条数据单独计步/计时/留证据，失败时能直接看出挂在哪条数据上。
+     *
+     * ```
+     * forEach(listOf("BTC", "ETH", "USDT"), "搜索代币") { symbol ->
+     *     searchToken(symbol)
+     * }
+     * ```
+     */
+    fun <T> forEach(data: Iterable<T>, name: String, action: (T) -> Unit) {
+        data.forEachIndexed { i, item ->
+            steps.add(Step("$name [${i + 1}: $item]") { action(item) })
+        }
+    }
+
     fun build(): Scenario {
         return Scenario(name, steps.toList(), collector, interceptors)
     }
