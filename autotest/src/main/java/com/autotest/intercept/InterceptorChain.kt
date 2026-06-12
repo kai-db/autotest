@@ -4,11 +4,15 @@ import com.autotest.log.TestLogger
 
 /**
  * 拦截器链，管理多个拦截器的注册和触发。
- * 所有拦截器按注册顺序执行，单个拦截器异常不影响其他拦截器和主逻辑。
+ *
+ * 双链设计（对齐 Kaspresso）：
+ * - watcher 链（[Interceptor]）：纯旁路观察（日志/截图/性能），按注册序执行，异常不影响主逻辑
+ * - behavior 链（[BehaviorInterceptor]）：失败恢复（弹窗关闭等），按注册序尝试，恢复成功重试一次
  */
 class InterceptorChain {
 
     private val interceptors = mutableListOf<Interceptor>()
+    private val behaviors = mutableListOf<BehaviorInterceptor>()
 
     /**
      * 可选日志器：设置后，被忽略的拦截器异常会留痕。
@@ -26,6 +30,15 @@ class InterceptorChain {
 
     fun clear() {
         interceptors.clear()
+        behaviors.clear()
+    }
+
+    fun addBehavior(behavior: BehaviorInterceptor) {
+        behaviors.add(behavior)
+    }
+
+    fun addBehaviors(vararg behaviors: BehaviorInterceptor) {
+        this.behaviors.addAll(behaviors)
     }
 
     fun fireBeforeAction(actionName: String, details: String = "") {
@@ -62,6 +75,36 @@ class InterceptorChain {
     /** 取某步骤的 logcat 路径（若链中有 LogcatInterceptor 且该步收集过；默认仅失败步骤收集）。 */
     fun stepLogcatPath(stepNumber: String): String? =
         interceptors.filterIsInstance<LogcatInterceptor>().firstOrNull()?.getLogcatPath(stepNumber)
+
+    /**
+     * 带恢复链的执行：失败时按注册序让 behavior 节点尝试恢复，
+     * 任一节点恢复成功则重试一次（重试再失败的新错误交给后续节点）；
+     * 全链无能为力抛出最后一次的错误。behavior 节点自身异常按"无能为力"处理并留痕。
+     */
+    fun <T> runWithRecovery(stepNumber: String, stepName: String, action: () -> T): T {
+        var lastError: Throwable
+        try {
+            return action()
+        } catch (e: Throwable) {
+            lastError = e
+        }
+        for (behavior in behaviors) {
+            val recovered = try {
+                behavior.tryRecover(stepNumber, stepName, lastError)
+            } catch (e: Throwable) {
+                logger?.w("Interceptor", "behavior 节点异常已忽略(${behavior.javaClass.simpleName}): ${e.message}")
+                false
+            }
+            if (!recovered) continue
+            logger?.i("Interceptor", "步骤[$stepNumber]经 ${behavior.javaClass.simpleName} 恢复，重试")
+            try {
+                return action()
+            } catch (e: Throwable) {
+                lastError = e
+            }
+        }
+        throw lastError
+    }
 
     /**
      * 带拦截器的操作执行。自动触发 before/after/onFailure。

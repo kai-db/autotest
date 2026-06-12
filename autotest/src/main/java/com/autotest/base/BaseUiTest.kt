@@ -114,8 +114,11 @@ abstract class BaseUiTest {
         TestArtifacts.cleanup(File(TestConfig.screenshotDir))  // 清理旧产物，防截图/日志/报告无限堆积
         interceptors.logger = logger
         val screenshotInterceptor = ScreenshotInterceptor(logger = logger)
+        val dialogDismiss = DialogDismissInterceptor(logger)
+        // behavior 链：步骤失败时按序尝试恢复（弹窗可能在步骤执行中途弹出，beforeStep 扫不到）
+        interceptors.addBehavior(dialogDismiss)
         interceptors.addAll(
-            DialogDismissInterceptor(logger),
+            dialogDismiss,
             LoggingInterceptor(logger),
             screenshotInterceptor,
             LogcatInterceptor(logger),       // 步骤失败时自动收集设备 logcat（含 crash/FATAL）

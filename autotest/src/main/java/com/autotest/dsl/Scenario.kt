@@ -18,7 +18,8 @@ class Scenario(
             interceptors?.fireBeforeStep(stepNumber, step.name)
 
             try {
-                step.run()
+                // 失败时先走 behavior 恢复链（如关闭中途弹出的弹窗后重试一次），全链无解才算失败
+                interceptors?.runWithRecovery(stepNumber, step.name) { step.run() } ?: step.run()
                 val duration = System.currentTimeMillis() - start
 
                 interceptors?.fireAfterStep(stepNumber, step.name, duration)

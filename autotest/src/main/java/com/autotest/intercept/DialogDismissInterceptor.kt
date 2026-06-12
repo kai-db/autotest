@@ -23,7 +23,7 @@ import com.autotest.log.TestLogger
 class DialogDismissInterceptor(
     private val logger: TestLogger,
     private val dismissTexts: List<String> = DEFAULT_DISMISS_TEXTS
-) : Interceptor {
+) : Interceptor, BehaviorInterceptor {
 
     companion object {
         val DEFAULT_DISMISS_TEXTS = listOf(
@@ -57,18 +57,31 @@ class DialogDismissInterceptor(
         dismissDialogs()
     }
 
-    private fun dismissDialogs() {
+    /**
+     * behavior 链角色：步骤失败时再扫一次弹窗——弹窗可能是在步骤执行中途弹出的
+     * （beforeStep 扫不到）。关掉了任何弹窗就返回 true 触发步骤重试。
+     */
+    override fun tryRecover(stepNumber: String, stepName: String, error: Throwable): Boolean {
+        val dismissed = dismissDialogs()
+        if (dismissed) {
+            logger.i("DialogDismiss", "步骤[$stepNumber]失败后发现并关闭了弹窗，触发重试")
+        }
+        return dismissed
+    }
+
+    /** @return 是否关闭了弹窗 */
+    private fun dismissDialogs(): Boolean {
         // 一次抓取当前所有可点击元素后本地匹配，避免对每个候选 res-id/文本各做一次跨进程树遍历。
         // 原实现每步多达 23 次 findObject；被测 App 永不 idle 时这是主要耗时来源。
         val clickables = device.findObjects(By.clickable(true))
-        if (clickables.isEmpty()) return
+        if (clickables.isEmpty()) return false
 
         // 系统权限弹窗：resource-id 精确匹配
         for (obj in clickables) {
             val res = obj.resourceName ?: continue
             if (res in PERMISSION_RES_IDS) {
                 logger.d("DialogDismiss", "关闭权限弹窗: $res")
-                obj.click(); device.waitForIdle(1000); return
+                obj.click(); device.waitForIdle(1000); return true
             }
         }
         // App 内弹窗：文本匹配
@@ -76,8 +89,9 @@ class DialogDismissInterceptor(
             val text = obj.text ?: continue
             if (dismissTexts.any { text == it || text.contains(it) }) {
                 logger.d("DialogDismiss", "关闭弹窗: \"$text\"")
-                obj.click(); device.waitForIdle(1000); return
+                obj.click(); device.waitForIdle(1000); return true
             }
         }
+        return false
     }
 }
