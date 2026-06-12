@@ -50,6 +50,29 @@ object HtmlReporter {
             </tr>"""
         }
 
+        val aiAssertionsHtml = report.aiAssertions.joinToString("\n") { a ->
+            val badgeClass = when (a.verdict) {
+                AiVerdict.PASS -> "pass"
+                AiVerdict.FAIL -> "fail"
+                AiVerdict.SKIPPED -> "skip"
+            }
+            """<tr>
+                <td>${escapeHtml(a.description)}</td>
+                <td><span class="badge $badgeClass">${a.verdict.name}</span></td>
+                <td>${if (a.optional) "软断言" else "硬断言"}</td>
+                <td>${escapeHtml(a.explanation).ifEmpty { "-" }}</td>
+            </tr>"""
+        }
+
+        val healingHtml = report.healingEvents.joinToString("\n") { e ->
+            """<tr>
+                <td>${escapeHtml(e.selectorKey)}</td>
+                <td><span class="badge warn">${e.level.name}</span></td>
+                <td>${escapeHtml(e.resolved)}</td>
+                <td>${e.confidence?.let { "%.2f".format(it) } ?: "-"}</td>
+            </tr>"""
+        }
+
         val deviceInfo = report.runnerInfo?.let {
             "${it.deviceManufacturer} ${it.deviceModel} (Android ${it.androidVersion}, SDK ${it.sdkVersion})"
         } ?: report.device ?: "Unknown"
@@ -82,6 +105,9 @@ tr.fail td { background: #fef2f2; }
 .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
 .badge.pass { background: #dcfce7; color: #166534; }
 .badge.fail { background: #fee2e2; color: #991b1b; }
+.badge.skip { background: #f3f4f6; color: #6b7280; }
+.badge.warn { background: #fef3c7; color: #92400e; }
+.section-note { font-size: 13px; color: #888; margin: -10px 0 12px; }
 .error-msg { color: #dc2626; font-size: 13px; }
 .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #aaa; }
 </style>
@@ -126,6 +152,24 @@ ${if (report.failures.isNotEmpty()) """
 <table>
 <tr><th>Class</th><th>Method</th><th>Message</th><th>Type</th><th>Screenshots</th></tr>
 $failuresHtml
+</table>
+""" else ""}
+
+${if (report.aiAssertions.isNotEmpty()) """
+<h2>AI 断言</h2>
+<p class="section-note">独立于确定性断言的软断言通道——FAIL 默认不影响测试结果，SKIPPED 表示本轮无 LLM 评估器</p>
+<table>
+<tr><th>断言</th><th>结果</th><th>级别</th><th>解释</th></tr>
+$aiAssertionsHtml
+</table>
+""" else ""}
+
+${if (report.healingEvents.isNotEmpty()) """
+<h2>定位自愈事件</h2>
+<p class="section-note">确定性选择器未命中、由指纹自愈/AI 兜底命中的定位——可能是真实 UI 回归，请人工确认后回填选择器</p>
+<table>
+<tr><th>选择器</th><th>降级层级</th><th>实际命中</th><th>置信度</th></tr>
+$healingHtml
 </table>
 """ else ""}
 

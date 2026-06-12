@@ -10,7 +10,11 @@ data class RunReport(
     val runnerInfo: RunnerInfo? = null,
     val failures: List<Failure> = emptyList(),
     val steps: List<StepResult> = emptyList(),
-    val summary: ReportSummary? = null
+    val summary: ReportSummary? = null,
+    /** AI 自然语言断言结果（独立通道，与确定性断言分开统计） */
+    val aiAssertions: List<AiAssertion> = emptyList(),
+    /** 定位自愈/AI 兜底命中事件（需人工确认是否为 UI 回归并回填选择器） */
+    val healingEvents: List<com.autotest.selector.LocatorEvent> = emptyList()
 )
 
 data class ReportSummary(

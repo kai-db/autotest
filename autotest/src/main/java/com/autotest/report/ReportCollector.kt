@@ -8,12 +8,19 @@ class ReportCollector : TestWatcher() {
     private var startTime: Long = 0L
     private val failures = mutableListOf<Failure>()
     private val stepResults = mutableListOf<StepResult>()
+    private val aiAssertions = mutableListOf<AiAssertion>()
 
     /**
      * 失败截图路径提供器：由 [com.autotest.base.BaseUiTest] 接到 ScreenshotInterceptor，
      * 测试失败时回填 [Failure.screenshots]，补全证据链。默认 null（无来源时不改变原行为）。
      */
     var screenshotProvider: (() -> List<String>)? = null
+
+    /**
+     * 定位自愈事件提供器：由 [com.autotest.base.BaseUiTest] 接到 SelfHealingLocator，
+     * 报告生成时回填 [RunReport.healingEvents]。默认 null。
+     */
+    var healingEventsProvider: (() -> List<com.autotest.selector.LocatorEvent>)? = null
 
     override fun starting(description: Description) {
         startTime = System.currentTimeMillis()
@@ -37,6 +44,10 @@ class ReportCollector : TestWatcher() {
         stepResults.add(result)
     }
 
+    fun addAiAssertion(assertion: AiAssertion) {
+        aiAssertions.add(assertion)
+    }
+
     fun buildReport(
         appPackage: String,
         endTime: Long = System.currentTimeMillis(),
@@ -53,7 +64,9 @@ class ReportCollector : TestWatcher() {
             runnerInfo = runnerInfo,
             failures = failures.toList(),
             steps = steps,
-            summary = ReportSummary.from(steps)
+            summary = ReportSummary.from(steps),
+            aiAssertions = aiAssertions.toList(),
+            healingEvents = healingEventsProvider?.invoke() ?: emptyList()
         )
     }
 }

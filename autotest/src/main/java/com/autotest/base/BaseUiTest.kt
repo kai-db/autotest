@@ -9,6 +9,8 @@ import androidx.test.espresso.idling.CountingIdlingResource
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.autotest.assertion.AiAsserter
+import com.autotest.assertion.AiAssertionEvaluator
 import com.autotest.config.TestConfig
 import com.autotest.intercept.DialogDismissInterceptor
 import com.autotest.intercept.InterceptorChain
@@ -23,6 +25,9 @@ import com.autotest.log.TestLogger
 import com.autotest.report.ReportCollector
 import com.autotest.report.ReportWriter
 import com.autotest.runner.RunnerInfo
+import com.autotest.selector.AiLocatorFallback
+import com.autotest.selector.FingerprintStore
+import com.autotest.selector.SelfHealingLocator
 import com.autotest.util.ScreenshotRule
 import com.autotest.util.TestArtifacts
 import com.autotest.util.allowPermission
@@ -57,6 +62,45 @@ abstract class BaseUiTest {
     @get:Rule(order = Int.MAX_VALUE)
     val screenshotRule = ScreenshotRule()
 
+    // ==================== 三级自愈定位 + AI 软断言 ====================
+
+    /** 元素指纹库（自愈降级链的数据底座），文件随产物目录走 */
+    val fingerprintStore: FingerprintStore by lazy {
+        FingerprintStore(File(TestConfig.screenshotDir, "fingerprints.json"), logger)
+    }
+
+    private val locatorDelegate = lazy {
+        SelfHealingLocator(device, fingerprintStore, aiFallback = createAiLocatorFallback(), logger = logger)
+    }
+
+    /** 三级降级定位器：确定性 → 指纹自愈 → AI 兜底；自愈事件自动回填报告 */
+    val locator: SelfHealingLocator by locatorDelegate
+
+    /** AI 软断言入口（无评估器时记 SKIPPED，不影响确定性执行） */
+    val aiAsserter: AiAsserter by lazy {
+        AiAsserter(
+            evaluator = createAiAssertionEvaluator(),
+            collector = reportCollector,
+            logger = logger,
+            screenshotProvider = { captureForAiAssert() }
+        )
+    }
+
+    /** AI 在环时覆写注入 LLM 定位兜底；CI 回归保持 null（执行期零 LLM 依赖） */
+    protected open fun createAiLocatorFallback(): AiLocatorFallback? = null
+
+    /** AI 在环时覆写注入 LLM 断言评估器；CI 回归保持 null */
+    protected open fun createAiAssertionEvaluator(): AiAssertionEvaluator? = null
+
+    private fun captureForAiAssert(): String? = try {
+        val file = File(TestConfig.screenshotDir, "ai_assert_${System.currentTimeMillis()}.png")
+        file.parentFile?.mkdirs()
+        if (device.takeScreenshot(file)) file.absolutePath else null
+    } catch (e: Throwable) {
+        logger.w("AiAssert", "断言截图失败: ${e.message}")
+        null
+    }
+
     @Before
     open fun setUp() {
         TestConfig.init()
@@ -81,6 +125,10 @@ abstract class BaseUiTest {
         // 失败截图回填报告，补全证据链
         reportCollector.screenshotProvider = {
             screenshotInterceptor.getAllScreenshots().values.toList()
+        }
+        // 自愈/AI 兜底定位事件回填报告（仅在 locator 被用过时取，避免无谓初始化）
+        reportCollector.healingEventsProvider = {
+            if (locatorDelegate.isInitialized()) locator.events else emptyList()
         }
 
         logger.i("BaseUiTest", "setUp 完成，设备: ${android.os.Build.MODEL}")
