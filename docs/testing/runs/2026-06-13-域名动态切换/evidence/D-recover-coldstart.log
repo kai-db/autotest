@@ -1,0 +1,8 @@
+06-13 21:18:28.809 22923 22923 D DomainManager: init: 开始初始化域名管理
+06-13 21:18:28.810 22923 22923 D DomainManager: restoreFromCache: 缓存域名池=[debox.pro, dbxsocial.com]
+06-13 21:18:28.810 22923 22923 D DomainManager: restoreFromCache: 缓存域名无效(), 回退到 debox.pro
+06-13 21:18:28.811 22923 22923 D DomainManager: restoreFromCache: 故障计数(衰减后)={t.debox.pro=0}
+06-13 21:18:28.811 22923 22923 D DomainManager: init: 缓存恢复完成, currentDomain=debox.pro, domainList=[debox.pro, dbxsocial.com]
+06-13 21:18:28.849 22923 23119 D DomainManager: checkCurrentDomainHealth: 当前域名 debox.pro 可达，无需处理
+06-13 21:18:29.235 22923 22923 D DomainManager: mergeDomains: 新增额外域名 [m.debox.pro, deswap.pro, x.debox.pro, app.debox.pro, open.debox.pro]
+06-13 21:18:29.985 22923 22923 D DomainManager: fetchOssDomains: OSS域名池更新成功, domainList=[debox.pro, dbxsocial.com], currentDomain=debox.pro

@@ -1,0 +1,14 @@
+06-13 21:16:54.241 21772 21772 D DomainManager: init: 开始初始化域名管理
+06-13 21:16:54.242 21772 21772 D DomainManager: restoreFromCache: 缓存域名池=[debox.pro, dbxsocial.com]
+06-13 21:16:54.243 21772 21772 D DomainManager: restoreFromCache: 故障计数(衰减后)={t.debox.pro=0}
+06-13 21:16:54.243 21772 21772 D DomainManager: init: 缓存恢复完成, currentDomain=debox.pro, domainList=[debox.pro, dbxsocial.com]
+06-13 21:16:54.246 21772 21942 D DomainManager: isReachable: debox.pro 不可达 - UnknownHostException
+06-13 21:16:54.249 21772 21942 D DomainManager: isReachable: dbxsocial.com 不可达 - UnknownHostException
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: │ Thread: domain-health-check
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: │ DomainManager.checkCurrentDomainHealth$lambda$23  (DomainManager.kt:334)
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: │    LogUtils.w  (LogUtils.kt:108)
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: │ checkCurrentDomainHealth: debox.pro 不可达且无可达备选，清除固化的当前域名并回退主域名
+06-13 21:16:54.249 21772 21942 W PRETTY_LOGGER-DomainManager: └────────────────────────────────────────────────────────────────────────────────────────────────────────────────
