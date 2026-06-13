@@ -120,20 +120,27 @@
 
 ---
 
-## C 层：集成测试（MockWebServer，待实现）
+## C 层：集成测试（MockWebServer，✅ 已实现）
 
-> §14 集成测试清单，当前提交未含；建议作为联调前的下一增量（核心行为已被 B 层覆盖支撑，
-> C 层验证的是 OkHttp 真实建连语义，特别是 IT-04 的轮换边界**必须实测**）。
+> §14 集成测试清单。落点：`business/BaseBusiness/src/test/.../httpdns/AliHttpDnsDnsIntegrationTest.kt`
+> （MockWebServer + okhttp-tls，9 用例，验证 OkHttp 4.12.0 真实建连语义——B 层纯逻辑覆盖不到的）。
+> 运行命令同 B 层（`-Dorg.gradle.configureondemand=false`）。
 
-| # | 用例 | 验证标准 | 优先级 |
-|---|------|----------|--------|
-| IT-01 | URL host / Host header 保持原域名（HTTPS 证书按原域名校验） | 不是 IP 直连 | P0 |
-| IT-02 | UnknownHostException 只标记不重放 POST | 防重复提交 | P0 |
-| IT-03 | FALLBACK 窗口内后续请求走 HTTPDNS | 第二请求命中缓存 | P0 |
-| IT-04 | 坏 IP + 好 IP 轮换实测（OkHttp 4.12.0，§7 边界——不依赖文档表述） | 同一请求成功连上第二 IP | P0 |
-| IT-05 | 持续污染不震荡（系统 DNS 持续坏 + HTTPDNS 可用，连续 N 请求） | FALLBACK 稳定，无周期失败 | P0 |
-| IT-06 | 开关关闭全链路 SDK 0 调用 | 不触碰 SDK | P0 |
-| IT-07 | TTL 过期 PROBE 回切两分支 | 成功回 NORMAL / 失败重回 FALLBACK | P0 |
+| # | 用例 | 验证标准 | 落点测试 | 优先级 |
+|---|------|----------|----------|--------|
+| IT-01 | URL host / SNI 保持原域名（HTTPS 证书按原域名校验，非 IP 直连） | requestUrl.host=debox.pro + 握手成功 | `IT01 host and SNI stay original domain over https not ip` | P0 |
+| IT-02 | UnknownHostException 只标记不重放 POST | 请求失败 + server 收到 0 请求 + 降级改写来源 | `IT02 unknown host on post does not replay request` | P0 |
+| IT-03 | FALLBACK 窗口内后续请求走 HTTPDNS | 2 请求都 200 + 都走 HTTPDNS 解析 | `IT03 subsequent requests in fallback go through httpdns` | P0 |
+| IT-04 | 坏 IP + 好 IP 轮换实测（OkHttp 4.12.0，§7 边界） | 同一请求成功连上第二 IP；候选全坏则失败（IT04b） | `IT04 okhttp rotates from bad ip to good ip` + `IT04b` | P0 |
+| IT-05 | 持续污染不震荡（系统 DNS 持续坏 + HTTPDNS 可用，连续 5 请求） | 5 请求全 200、全走 HTTPDNS，无失败 | `IT05 sustained pollution stays on httpdns without flapping` | P0 |
+| IT-06 | 开关关闭全链路 SDK 0 调用 | 走系统 DNS + httpDnsLookup 0 次 | `IT06 switch off never calls httpdns sdk` | P0 |
+| IT-07 | TTL 过期 PROBE 回切两分支 | 系统恢复→200（IT07a）/ 系统仍坏→失败（IT07b） | `IT07a probe success` + `IT07b probe failure` | P0 |
+
+> **关键实测结论（IT-04，方案 §7 不依赖文档表述）**：OkHttp 4.12.0 下，HTTPDNS 候选列表
+> `[坏IP 192.0.2.1, 好IP]` 时，同一次请求 connect 坏 IP 超时后**自动轮换到好 IP 成功**；
+> 候选全坏且不追加系统 DNS 时请求失败（IT04b，证明轮换不是无条件成功）。
+> 踩坑：测试 client 必须 `.proxy(Proxy.NO_PROXY)`（本机代理会拦截致 502）；验证"每请求都
+> 走 HTTPDNS"需禁用连接池（否则 OkHttp 复用连接不触发 lookup，§4.4）。
 
 ---
 
@@ -164,6 +171,6 @@
 | 框架前置检查 | 3 | 3 | 0 | 0 | ✅ |
 | A 层 静态核对 | 9 | 8 | 1 | 0 | ✅（PRE-09 需设备解锁） |
 | B 层 JVM 单测 | 41 条目 / 50 测试 | 29 | 9 | 3 | ✅ |
-| C 层 集成测试 | 7 | 7 | 0 | 0 | ⏸️ 待实现 |
+| C 层 集成测试 | 7（9 测试） | 7 | 0 | 0 | ✅ 已实现 9/9 |
 | D 层 真机验证 | 7 | 5 | 2 | 0 | ✅ 禁用态子集已执行（MV-02~05 待密钥） |
 | **合计** | **67** | **52** | **12** | **3** | — |

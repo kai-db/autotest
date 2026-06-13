@@ -57,10 +57,9 @@
 `business/BaseBusiness/src/test/.../httpdns/AliHttpDnsManagerTest.kt` + `HttpDnsConfigTest.kt`
 （**未提交**，等用户确认后随分支提交）。
 
-### C 层 集成测试（7 条 ⏸️ 待实现）
+### C 层 集成测试（✅ 已实现 9/9 PASS，见第 8 轮）
 
-当前提交未含 MockWebServer 集成测试。其中 IT-04（坏 IP+好 IP 轮换边界）方案明确要求
-"OkHttp 4.12.0 实测、不依赖文档表述"（§7），建议联调前补上。
+第 8 轮补齐（详见下）。
 
 ### D 层 真机验证（6 条 ⏸️）
 
@@ -324,6 +323,55 @@ trade/chains）——系统 DNS 全坏仍成功，证明 HTTPDNS 已能拿到 `d
 恢复 DNS 后正式环境验证：`UnknownHostException=0`、26 个 200、首页正常。
 
 **状态**：🟢 已解决已验证
+
+---
+
+## 第 8 轮（C 层 MockWebServer 集成测试补齐）
+
+> 测试日期：2026-06-13 | 环境：macOS JVM | 触发原因：补齐 §14 集成测试（此前唯一"待实现"层）。
+> 落点：`debox/business/BaseBusiness/src/test/.../httpdns/AliHttpDnsDnsIntegrationTest.kt`
+> 依赖：BaseBusiness build.gradle 新增 `mockwebserver:4.12.0` + `okhttp-tls:4.12.0`（testImplementation，版本对齐 okhttp）。
+
+### 为什么要 C 层（B 层覆盖不到的）
+
+B 层是纯逻辑单测（注入假 Dns），验证不了 **OkHttp 4.12.0 的真实建连语义**——多 IP 候选轮换、
+HTTPS host/SNI 保持、FALLBACK 真实请求往返。C 层用真实 OkHttpClient + MockWebServer 补这块。
+
+### 用例结果（9/9 PASS）
+
+| # | 用例 | 结果 | 验证点 |
+|---|------|------|--------|
+| IT-01 | HTTPS host/SNI 保持原域名 | ✅ | 为 debox.pro 自签证书，握手成功(200) + requestUrl.host=debox.pro（非 IP 直连） |
+| IT-02 | UHE 不重放 POST | ✅ | 解析失败 POST 抛异常 + server 收到 0 请求 + 降级改写来源（§4.4 修正⑬） |
+| IT-03 | FALLBACK 后续请求走 HTTPDNS | ✅ | 2 请求都 200，禁连接池后每次都走 httpDnsLookup |
+| IT-04 | **坏 IP + 好 IP 轮换（OkHttp 4.12.0 实测）** | ✅ | 候选 `[192.0.2.1, 好IP]`：connect 坏 IP 超时后**同一请求轮换到好 IP 成功** |
+| IT-04b | 候选全坏不追加系统 DNS | ✅ | 请求失败 + server 收到 0 请求（证明轮换非无条件成功，§7 边界） |
+| IT-05 | 持续污染不震荡 | ✅ | 系统 DNS 持续坏 + HTTPDNS 可用，连续 5 请求全 200、全走 HTTPDNS、无失败 |
+| IT-06 | 开关关闭 SDK 0 调用 | ✅ | decide=SYSTEM → 走系统 DNS，httpDnsLookup 0 次 |
+| IT-07a | PROBE 成功（系统恢复） | ✅ | decide=PROBE_SYSTEM + 系统 DNS 恢复 → 200，不查 HTTPDNS |
+| IT-07b | PROBE 失败（系统仍坏） | ✅ | decide=PROBE_SYSTEM + 系统 DNS 仍坏 → 请求失败（上层据此重回 FALLBACK） |
+
+### 实测关键结论 + 踩坑
+
+- **IT-04（方案 §7 不依赖文档表述）**：OkHttp 4.12.0 确认顺序轮换——坏 IP connect 失败后
+  同一次请求尝试下一候选；候选全坏才失败。验证了"多 IP 轮换"是真实可恃的容灾能力。
+- **踩坑 1（502）**：测试 client 必须 `.proxy(Proxy.NO_PROXY)`，否则本机代理拦截请求返回 502
+  （与 RetrofitFactory 一致；同 BUG-003 的本机代理问题）。
+- **踩坑 2（lookup 计数）**：验证"每请求都走 HTTPDNS"需禁用连接池（`ConnectionPool(0,...)`），
+  否则 OkHttp 复用连接、后续请求不触发 lookup（正是 §4.4"连接复用未触发 lookup"的实证）。
+- **踩坑 3（Host header）**：HTTPS 协商为 HTTP/2 时无 Host header（用 :authority 伪头），
+  改验 requestUrl.host。
+
+### httpdns 全套回归
+
+```
+AliHttpDnsDnsIntegrationTest  9 ✅   AliHttpDnsDnsTest      8 ✅
+HttpDnsFallbackPolicyTest    19 ✅   HttpDnsRemoteConfigTest 13 ✅
+AliHttpDnsManagerTest         7 ✅   HttpDnsConfigTest       6 ✅
+合计 62 测试 / 0 失败
+```
+
+**本轮统计**：PASS 9 / FAIL 0。**HTTPDNS 测试四层（A 静态 / B 单测 / C 集成 / D 真机）全部落地。**
 
 ---
 
