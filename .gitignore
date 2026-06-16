@@ -8,3 +8,7 @@
 
 # 测试截图证据：含被测 App 真实数据（聊天/地址/资产），不入库；本地归档，results.md 里有文件名可追溯
 docs/testing/runs/**/screenshots/
+
+# 测试原始 logcat：可能含 debug http body 明文（stream_url 等敏感播放凭证，见 results.md 观察项 1），
+# 且体积大；本地归档，results.md 有时间锚点可追溯
+docs/testing/runs/**/logs*/
