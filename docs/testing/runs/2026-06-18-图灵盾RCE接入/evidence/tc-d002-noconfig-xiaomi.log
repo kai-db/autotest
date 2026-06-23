@@ -1,0 +1,11 @@
+06-18 21:51:45.208 32710 32710 D StartupTaskManager: 注册任务: 腾讯图灵盾风控初始化 [MEDIUM]
+06-18 21:51:46.321 32710 27157 E TuringFdJava: please input valid channel!
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: │ Thread: Thread-13
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: │ TuringShieldManager.init  (TuringShieldManager.kt:71)
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: │    LogUtils.w  (LogUtils.kt:108)
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-18 21:51:46.321 32710 27157 W PRETTY_LOGGER-TuringShield: │ TuringSDK.init failed ret=-10018
+06-18 21:51:46.322 32710 27157 W PRETTY_LOGGER-TuringShield: └────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-18 21:51:46.322 32710 27157 D StartupTaskManager: ✓ 腾讯图灵盾风控初始化 [main=false] 完成，耗时: 8ms

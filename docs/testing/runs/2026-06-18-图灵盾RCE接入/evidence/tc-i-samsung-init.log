@@ -1,0 +1,15 @@
+06-18 17:59:17.144 14097 14097 D StartupTaskManager: 注册任务: 腾讯图灵盾风控初始化 [MEDIUM]
+06-18 17:59:18.114 14097 14156 I TuringFdJava: TuringFD v2.93.9 (9D9F727DF8E99A13, pri_mini, 4678d35, rs, pri;tmfshark, compiled 2026_05_07_11_11_32) [url(https://www.turingfraud.net);c(12000025)]
+06-18 17:59:18.117 14097 14156 I TuringFdNative: TuringFD v2.93.9 (9D9F727DF8E99A13, pri_mini, 4678d35, compiled 2026_05_07_11_11_32) success 
+06-18 17:59:18.124 14097 14156 D StartupTaskManager: ✓ 腾讯图灵盾风控初始化 [main=false] 完成，耗时: 12ms
+06-18 17:59:19.903 14097 14426 I security.wallet: hiddenapi: Accessing hidden field Landroid/app/ApplicationPackageManager;->mPM:Landroid/content/pm/IPackageManager; (runtime_flags=0, domain=platform, api=unsupported) from Lcom/turingfd/sdk/pri_mini/Herbaceous; (domain=app, TargetSdkVersion=35) using reflection: allowed
+06-18 17:59:19.905 14097 14426 E security.wallet: hiddenapi: Accessing hidden field Landroid/content/pm/ApplicationInfo;->seInfo:Ljava/lang/String; (runtime_flags=0, domain=platform, api=max-target-o) from Lcom/turingfd/sdk/pri_mini/Herbaceous; (domain=app, TargetSdkVersion=35) using reflection: denied
+06-18 17:59:19.915 14097 14426 E security.wallet: hiddenapi: Accessing hidden method Landroid/view/Display;->getOwnerUid()I (runtime_flags=0, domain=platform, api=max-target-o) from Lcom/turingfd/sdk/pri_mini/Nectarine; (domain=app, TargetSdkVersion=35) using JNI: denied
+06-18 17:59:19.916 14097 14426 I security.wallet: hiddenapi: Accessing hidden field Ljava/lang/reflect/Executable;->artMethod:J (runtime_flags=0, domain=core-platform, api=unsupported) from Lcom/turingfd/sdk/pri_mini/Nectarine; (domain=app, TargetSdkVersion=35) using JNI: allowed
+06-18 17:59:19.916 14097 14426 E security.wallet: hiddenapi: Accessing hidden field Ljava/lang/reflect/Executable;->accessFlags:I (runtime_flags=0, domain=core-platform, api=max-target-o) from Lcom/turingfd/sdk/pri_mini/Nectarine; (domain=app, TargetSdkVersion=35) using JNI: denied
+06-18 17:59:19.922 14097 14426 E security.wallet: hiddenapi: Accessing hidden method Llibcore/io/IoBridge;->open(Ljava/lang/String;I)Ljava/io/FileDescriptor; (runtime_flags=CorePlatformApi, domain=core-platform, api=blocked,core-platform-api) from Lcom/turingfd/sdk/pri_mini/Nectarine; (domain=app, TargetSdkVersion=35) using JNI: denied
+06-18 17:59:20.359 14097 14447 D PRETTY_LOGGER-http_log_interceptor: │ header：rceDeviceToken=v3:AAA***qw==
+06-18 17:59:20.807 14097 14343 D PRETTY_LOGGER-http_log_interceptor: │ header：rceDeviceToken=v3:AAA***qw==
+06-18 17:59:21.778 14097 14343 D PRETTY_LOGGER-http_log_interceptor: │ header：rceDeviceToken=v3:AAA***qw==
+06-18 17:59:22.788 14097 14343 D PRETTY_LOGGER-http_log_interceptor: │ header：rceDeviceToken=v3:AAA***qw==
+06-18 17:59:22.788 14097 14447 D PRETTY_LOGGER-http_log_interceptor: │ header：rceDeviceToken=v3:AAA***qw==
