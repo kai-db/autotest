@@ -1,0 +1,66 @@
+06-23 15:18:42.616  4617  6902 D NetworkMonitor/155: PROBE_DNS connectivity.samsung.com.cn 45ms OK 122.193.246.103,36.251.255.147,124.160.144.243,36.248.210.204,122.193.246.110,36.251.255.138,124.160.144.249,36.248.210.205
+06-23 15:18:42.623  4617  6899 D NetworkMonitor/155: PROBE_DNS connectivity.samsung.com.cn 52ms OK 122.193.246.103,36.251.255.147,124.160.144.243,36.248.210.204,122.193.246.110,36.251.255.138,124.160.144.249,36.248.210.205
+06-23 15:18:42.672  4617  6899 D NetworkMonitor/155: PROBE_HTTP http://connectivity.samsung.com.cn/generate_204 time=49ms ret=204 request={Connection=[close], User-Agent=[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36]} headers={null=[HTTP/1.1 204 No Content], Connection=[close], Date=[Tue, 23 Jun 2026 07:18:42 GMT], EagleId=[7ac1f61317821991226254514e], Timing-Allow-Origin=[*], Via=[ens-cache10.cn8915[,0]], X-Android-Received-Millis=[1782199122672], X-Android-Response-Source=[NETWORK 204], X-Android-Selected-Protocol=[http/1.1], X-Android-Sent-Millis=[1782199122645]}
+06-23 15:18:42.727  4617  6902 D NetworkMonitor/155: PROBE_HTTPS https://connectivity.samsung.com.cn/generate_204 time=111ms ret=204 request={Connection=[close], User-Agent=[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36]} headers={null=[HTTP/1.1 204 No Content], Connection=[close], Date=[Tue, 23 Jun 2026 07:18:42 GMT], EagleId=[7ac1f61317821991226754521e], Timing-Allow-Origin=[*], Via=[ens-cache10.cn8915[,0]], X-Android-Received-Millis=[1782199122727], X-Android-Response-Source=[NETWORK 204], X-Android-Selected-Protocol=[http/1.1], X-Android-Sent-Millis=[1782199122673]}
+06-23 15:18:42.728  4617  6898 D NetworkMonitor/155: PROBE_DNS connectivitycheck.gstatic.cn 1156ms FAIL in type ADDRCONFIG Timeout
+06-23 15:18:42.728  4617  6900 D NetworkMonitor/155: PROBE_DNS connectivitycheck.gstatic.cn 1157ms FAIL in type ADDRCONFIG Timeout
+06-23 15:18:43.494  6876  6876 D DomainManager: init: 开始初始化域名管理
+06-23 15:18:43.495  6876  6876 D DomainManager: restoreFromCache: 缓存域名池(含兜底)=[t.debox.pro, t.dbxsocial.com, debox.pro, dbxsocial.com]
+06-23 15:18:43.495  6876  6876 D DomainManager: restoreFromCache: 故障计数(衰减后)={}
+06-23 15:18:43.495  6876  6876 D DomainManager: init: 缓存恢复完成, currentDomain=debox.pro, domainList=[t.debox.pro, t.dbxsocial.com, debox.pro, dbxsocial.com]
+06-23 15:18:43.527  6876  7209 D AliHttpDnsManager: doInit: HTTPDNS SDK 初始化完成
+06-23 15:18:44.727  4617  6898 D NetworkMonitor/155: PROBE_HTTP http://connectivitycheck.gstatic.cn/generate_204 time=1999ms ret=204 request={Connection=[close], User-Agent=[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36]} headers={null=[HTTP/1.1 204 No Content], Connection=[close], Content-Length=[0], Cross-Origin-Resource-Policy=[cross-origin], Date=[Tue, 23 Jun 2026 07:18:44 GMT], X-Android-Received-Millis=[1782199124727], X-Android-Response-Source=[NETWORK 204], X-Android-Selected-Protocol=[http/1.1], X-Android-Sent-Millis=[1782199124653]}
+06-23 15:18:44.841  4617  6900 D NetworkMonitor/155: PROBE_HTTPS https://connectivitycheck.gstatic.cn/generate_204 time=2112ms ret=204 request={Connection=[close], User-Agent=[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.32 Safari/537.36]} headers={null=[HTTP/1.1 204 No Content], Alt-Svc=[h3=":443"; ma=2592000,h3-29=":443"; ma=2592000], Connection=[close], Content-Length=[0], Cross-Origin-Resource-Policy=[cross-origin], Date=[Tue, 23 Jun 2026 07:18:44 GMT], X-Android-Received-Millis=[1782199124840], X-Android-Response-Source=[NETWORK 204], X-Android-Selected-Protocol=[http/1.1], X-Android-Sent-Millis=[1782199124739]}
+06-23 15:18:47.591  6876  7173 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/check_token_channel, 累计故障=1
+06-23 15:18:47.592  6876  7173 D DomainManager: onConnectivityFailure: 窗口内不同path=1, 未达阈值3
+06-23 15:18:47.592  6876  7173 D HttpDnsFallbackPolicy: enter_fallback: t.debox.pro reason=UnknownHostException
+06-23 15:18:47.608  6876  7672 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.609  6876  7672 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/ai/v1/sync/prompts, 累计故障=2
+06-23 15:18:47.609  6876  7672 D DomainManager: onConnectivityFailure: 窗口内不同path=2, 未达阈值3
+06-23 15:18:47.614  6876  7173 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.615  6876  7173 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/ai/v1/sync/skills, 累计故障=3
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: │ Thread: OkHttp https://t.debox.pro/...
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: │ DomainManager.onConnectivityFailure  (DomainManager.kt:299)
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: │    LogUtils.w  (LogUtils.kt:108)
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: │ onConnectivityFailure: 域名切换 debox.pro -> t.dbxsocial.com, failureMap={t.debox.pro=3}
+06-23 15:18:47.616  6876  7173 W PRETTY_LOGGER-DomainManager: └────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-23 15:18:47.621  6876  7672 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.622  6876  7672 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/ip_restriction/status, 累计故障=4
+06-23 15:18:47.622  6876  7672 D DomainManager: onConnectivityFailure: 窗口内不同path=1, 未达阈值3
+06-23 15:18:47.627  6876  7173 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.628  6876  7173 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/message/moment_notice, 累计故障=5
+06-23 15:18:47.628  6876  7173 D DomainManager: onConnectivityFailure: 窗口内不同path=2, 未达阈值3
+06-23 15:18:47.633  6876  7672 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.634  6876  7672 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/did/theme/query, 累计故障=6
+06-23 15:18:47.634  6876  7672 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换19ms < 30000ms
+06-23 15:18:47.638  6876  7173 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.638  6876  7173 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/dao/dao_favorite_list, 累计故障=7
+06-23 15:18:47.639  6876  7173 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换24ms < 30000ms
+06-23 15:18:47.643  6876  7672 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.644  6876  7672 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/dao/user_info, 累计故障=8
+06-23 15:18:47.644  6876  7672 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换29ms < 30000ms
+06-23 15:18:47.648  6876  7173 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.649  6876  7173 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/redirect_native, 累计故障=9
+06-23 15:18:47.650  6876  7173 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换34ms < 30000ms
+06-23 15:18:47.654  6876  7672 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.655  6876  7672 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/emojis/list, 累计故障=10
+06-23 15:18:47.655  6876  7672 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换40ms < 30000ms
+06-23 15:18:47.662  6876  7173 D AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro
+06-23 15:18:47.662  6876  7173 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/emojis/package/list, 累计故障=11
+06-23 15:18:47.662  6876  7173 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换47ms < 30000ms
+06-23 15:18:47.707  6876  7210 D DomainManager: isReachable: debox.pro 不可达 - UnknownHostException
+06-23 15:18:51.796  6876  7226 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/dapps, 累计故障=12
+06-23 15:18:51.796  6876  7226 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换4181ms < 30000ms
+06-23 15:18:51.797  6876  7215 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/official, 累计故障=13
+06-23 15:18:51.798  6876  7215 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换4183ms < 30000ms
+06-23 15:18:51.799  6876  7225 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/v1/posthog, 累计故障=14
+06-23 15:18:51.799  6876  7225 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换4184ms < 30000ms
+06-23 15:18:51.801  6876  7224 D DomainManager: onConnectivityFailure: domain=t.debox.pro, path=debox/trade/chains, 累计故障=15
+06-23 15:18:51.801  6876  7224 D DomainManager: onConnectivityFailure: 冷却期中, 距上次切换4186ms < 30000ms
+06-23 15:18:51.921  6876  7210 D DomainManager: isReachable: dbxsocial.com 不可达 - UnknownHostException
+06-23 15:18:51.921  6876  7210 D DomainManager: isReachable: t.debox.pro 不可达 - UnknownHostException
+06-23 15:18:56.134  6876  7210 D DomainManager: isReachable: t.dbxsocial.com 不可达 - UnknownHostException
+06-23 15:18:56.134  6876  7210 D DomainManager: checkCurrentDomainHealth: 当前域名已变更为 t.dbxsocial.com，跳过回退

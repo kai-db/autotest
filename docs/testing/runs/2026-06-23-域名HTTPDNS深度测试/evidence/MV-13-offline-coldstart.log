@@ -1,0 +1,17 @@
+06-23 15:20:52.739  8832  8832 D DomainManager: init: 开始初始化域名管理
+06-23 15:20:52.740  8832  8832 D DomainManager: restoreFromCache: 缓存域名池(含兜底)=[t.debox.pro, t.dbxsocial.com, debox.pro, dbxsocial.com]
+06-23 15:20:52.741  8832  8832 D DomainManager: restoreFromCache: 故障计数(衰减后)={t.debox.pro=7}
+06-23 15:20:52.741  8832  8832 D DomainManager: init: 缓存恢复完成, currentDomain=t.dbxsocial.com, domainList=[t.debox.pro, t.dbxsocial.com, debox.pro, dbxsocial.com]
+06-23 15:20:52.746  8832  9110 D DomainManager: isReachable: t.dbxsocial.com 不可达 - UnknownHostException
+06-23 15:20:52.749  8832  9110 D DomainManager: isReachable: debox.pro 不可达 - UnknownHostException
+06-23 15:20:52.751  8832  9110 D DomainManager: isReachable: dbxsocial.com 不可达 - UnknownHostException
+06-23 15:20:52.753  8832  9110 D DomainManager: isReachable: t.debox.pro 不可达 - UnknownHostException
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: │ Thread: domain-health-check
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: │ DomainManager.checkCurrentDomainHealth$lambda$26  (DomainManager.kt:365)
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: │    LogUtils.w  (LogUtils.kt:108)
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+06-23 15:20:52.753  8832  9110 W PRETTY_LOGGER-DomainManager: │ checkCurrentDomainHealth: t.dbxsocial.com 不可达且无可达备选（疑似设备离线），保留当前域名，待网络恢复后由请求级切换接管
+06-23 15:20:52.754  8832  9110 W PRETTY_LOGGER-DomainManager: └────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+06-23 15:20:52.754  8832  9109 D AliHttpDnsManager: doInit: HTTPDNS SDK 初始化完成

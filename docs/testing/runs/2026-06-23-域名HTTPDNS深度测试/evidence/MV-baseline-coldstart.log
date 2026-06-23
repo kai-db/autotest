@@ -1,0 +1,9 @@
+06-23 15:17:35.579  6030  6030 D DomainManager: init: 开始初始化域名管理
+06-23 15:17:35.580  6030  6030 D DomainManager: restoreFromCache: 缓存域名池(含兜底)=[t.debox.pro, t.dbxsocial.com, debox.pro, dbxsocial.com]
+06-23 15:17:35.581  6030  6030 D DomainManager: restoreFromCache: 故障计数(衰减后)={}
+06-23 15:17:35.581  6030  6030 D DomainManager: init: 缓存恢复完成, currentDomain=debox.pro, domainList=[t.debox.pro, t.dbxsocial.com, debox.pro, dbxsocial.com]
+06-23 15:17:35.597  6030  6270 D AliHttpDnsManager: doInit: HTTPDNS SDK 初始化完成
+06-23 15:17:35.636  6030  6271 D DomainManager: checkCurrentDomainHealth: 当前域名 debox.pro 可达，无需处理
+06-23 15:17:35.989  6030  6030 D DomainManager: mergeDomains: 新增额外域名 [t.debox.site, s.debox.pro, m.debox.pro, xt.debox.pro, x.debox.pro, t.app.debox.pro, t.open.debox.pro]
+06-23 15:17:36.632  6030  6030 D HttpDnsConfig: updateFromOssContent: HttpDnsRemoteConfig(enabled=true, grayPercent=100, hosts=[t.debox.pro], abnormalTtlMs=600000, appendSystemDns=true, enableHttps=true, enableAes=false)
+06-23 15:17:36.633  6030  6030 D DomainManager: fetchOssDomains: OSS域名池更新成功, domainList=[t.debox.pro, t.dbxsocial.com], currentDomain=debox.pro

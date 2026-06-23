@@ -1,6 +1,6 @@
-# 网络 / 域名动态切换（DeBox）
+# 网络 / 域名动态切换 + 阿里云 HTTPDNS（DeBox）
 
-> AI 探索沉淀，供网络类特性测试 session 先读。来源：2026-06-13 域名动态切换测试。
+> AI 探索沉淀，供网络类特性测试 session 先读。来源：2026-06-13 域名动态切换测试 + 2026-06-23 域名/HTTPDNS 深度测试。
 
 ## 域名切换运行机制（`DomainManager` + `DomainSwitchInterceptor`）
 
@@ -35,3 +35,42 @@ adb -s <serial> shell svc wifi disable && adb -s <serial> shell svc data disable
 adb -s <serial> shell svc wifi enable  && adb -s <serial> shell svc data enable    # 恢复
 ```
 测完**务必恢复**，并 `settings put global http_proxy :0` 清理任何代理残留。
+
+---
+
+## 阿里云 HTTPDNS 异常兜底（`httpdns` 包，2026-06-23 实测沉淀）
+
+### 机制（与域名切换互不替代、同口径双驱动）
+- **触发链**：`DomainSwitchInterceptor` 捕获连通性异常 → 同时调 `DomainManager.onConnectivityFailure`（域名切换）**和** `HttpDnsFallbackPolicy.markNetworkAbnormal`（HTTPDNS 状态机）。
+- **per-host 三态状态机**：`NORMAL`(系统DNS) →[连通性异常+开关开]→ `FALLBACK`(HTTPDNS, 默认 TTL 10min) →[TTL到期]→ `PROBE`(系统DNS单飞试探) →[成功]→ NORMAL / [失败]→ 重回 FALLBACK。
+- **§4.4 来源感知**：FALLBACK 期 HTTPDNS 成功**只续期不清除**；只有 PROBE 系统 DNS 成功才清回 NORMAL；HTTPDNS 空结果 `markResolutionDegraded` 改写来源=SYSTEM，该次系统成功**不续期**（防控制台漏配时永不回切）。
+- **OkHttp 接线**：`RetrofitFactory` `.dns(AliHttpDnsDns())`（无状态可共享）+ `.proxy(NO_PROXY)`；非受管 host 零开销直通系统 DNS。
+- **开关/收窄**：`switchOn()` = 密钥就绪 +（dev/beta 强制 或 OSS `enabled` + 灰度命中）；`isEffectiveHost` = 受管(内置∪池) ∩ OSS `hosts` 收窄列表。
+
+### ⚠️ 测试环境关键约束（实测）
+- OSS `conf_test.json` 把 HTTPDNS **收窄到 `t.debox.pro`**（`httpdns_hosts=[t.debox.pro]`，`abnormalTtlMs=600000`）。
+- 测试环境**实际业务流量走 `t.debox.pro`**（= HTTPDNS 生效域名），而 `DomainManager.currentDomain=debox.pro` 是生产域名占位 → **HTTPDNS 触发与域名切换天然串联**：debox.pro 失败→切到 t.debox.pro→t.debox.pro 进 FALLBACK 走 HTTPDNS。
+- **密钥已注入**（2.13.x dev 包）→ 启动即 `doInit: HTTPDNS SDK 初始化完成`，HTTPDNS 真机可测（上一轮 06-12 因密钥缺失整体禁用）。
+- **EMAS 控制台当前未托管 t.debox.pro** → FALLBACK 后 HTTPDNS 持续 `httpdns_empty_fallback_system`，正向"救活请求"无法真机验证；客户端空结果降级正确，第二道域名切换照常接管。配置控制台后方可验 happy 路径。
+
+### HTTPDNS 取证关键字
+```
+adb -s <serial> logcat -d | grep -aiE "AliHttpDnsManager|HttpDnsConfig|HttpDnsFallbackPolicy|AliHttpDnsDns|enter_fallback|probe_success|probe_fail|fallback_pending_init|httpdns_empty_fallback_system|httpdns_error_fallback_system"
+```
+- `doInit: HTTPDNS SDK 初始化完成` / `ensureInitialized: 密钥缺失`（禁用态）
+- `updateFromOssContent: HttpDnsRemoteConfig(enabled=..., hosts=[...], abnormalTtlMs=...)`
+- `enter_fallback: <host> reason=UnknownHostException` / `probe_success` / `probe_fail`
+- `httpdns_empty_fallback_system: <host>`（空结果降级，多为控制台漏配）/ `httpdns_error_fallback_system`（SDK 异常降级）
+
+## 故障注入手段对照（2026-06-23 实测厘清，重要）
+
+| 手段 | 是否进 OkHttp 拦截器 | 触发什么 | 命令 |
+|---|---|---|---|
+| **DNS 污染**（strict private DNS + 坏 specifier） | ✅ 进（产生 UnknownHostException） | 请求级故障切换 + HTTPDNS FALLBACK | `settings put global private_dns_mode hostname` + `private_dns_specifier <坏DoT主机>` |
+| **整机断网**（svc disable） | ❌ 被 App 守卫 `-100` 短路 | 仅启动健康探测"全不可达保留当前域名"分支 | `svc wifi disable` + `svc data disable` |
+
+- 测「请求级切换 / HTTPDNS FALLBACK」**必须用 DNS 污染**，整机断网测不到（实测断网冷启 0 条 onConnectivityFailure）。
+- 复原 DNS 污染：`settings delete global private_dns_specifier` + `settings delete global private_dns_mode`（回原始未设态）。
+- **故障计数启动衰减实测**：重启一次减半（15→7→3），`restoreFromCache: 故障计数(衰减后)=...` 可见。
+- **健康探测"全不可达保留当前域名"分支**：`checkCurrentDomainHealth: X 不可达且无可达备选（疑似设备离线），保留当前域名，待网络恢复后由请求级切换接管`（302b4f0 不再误清已生效选择）。
+- **resetUrl/切换在 domain-health-check 后台线程**，不阻塞启动；探测期 currentDomain 被请求级切换改写则 `当前域名已变更为 X，跳过回退`（防互相覆盖）。
