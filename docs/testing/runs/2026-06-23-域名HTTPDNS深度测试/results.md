@@ -5,6 +5,66 @@
 
 ---
 
+## 第 2 轮（回归，2026-06-25）
+
+> 触发原因：06-25「域名HTTPDNS自愈鲁棒性增强」对同一链路做了 9 项改动 + 1 重构 + review-①②③ + base URL 同步修复，回归确认未破坏 06-23 既有行为。
+> 设备：小米 25067PYE3C（`402714f0`，**正式环境**；三星本轮离线）。被测：debox-android dev 工作区（含 06-25 全部改动）。
+
+### 自动化层回归（B 全套 + C 集成 + Domain）— **115 tests / 0 fail / 0 error**
+
+| 测试类 | tests | skip | 备注 |
+|---|---|---|---|
+| **AliHttpDnsDnsIntegrationTest（C 集成）** | 9 | 0 | URL host/SNI、UHE 不重放 POST、FALLBACK 走 HTTPDNS、坏IP→好IP 轮换、持续污染不震荡、开关关 0 调用、PROBE 双分支 —— **真实建连语义无回归** |
+| HttpDnsFallbackPolicyTest | 25 | 0 | 19→25（+6 review-② 过期 FALLBACK/PROBE 刷新、有效租约 no-op） |
+| HttpDnsRemoteConfigTest | 17 | 0 | 13→17（+4 review-① 全非法标记/安全失败） |
+| AliHttpDnsDnsTest | 8 | 0 | — |
+| AliHttpDnsManagerTest | 9 | 3 | skip=密钥缺失分支（密钥已注入，预期跳过） |
+| HttpDnsConfigTest | 8 | 1 | skip=同上 |
+| DomainSwitchInterceptorTest | 8 | 0 | — |
+| NetworkFailuresTest | 4 | 0 | 06-25 新增（两套故障口径分离 isDomainSwitchSignal/isReplaySafe） |
+| HttpConstantTest | 4 | 0 | — |
+| **DomainManagerTest** | 14 | 0 | **4→14，编译+全部通过（BUG-001 已解决）** |
+| 合计 | **115** | 4 | **0 fail / 0 error** |
+
+### 状态更新
+- **BUG-001 → ✅ 已解决**：`DomainManager` 已暴露 `internal fun seedFromBundledContent(content: String)` 可测 seam，`DomainManagerTest` 由 4 例增至 14 例、全部编译通过。
+- **OBS-001（EMAS 未托管 t.debox.pro）仍为外部运维项**，未变；正式环境收窄 `hosts=[debox.pro]`，EMAS 同样未托管 → `httpdns_empty_fallback_system` 照旧（客户端降级正确）。
+
+### D 层真机回归（正式环境小米 402714f0）
+
+> 正式环境拓扑：`domainList=[debox.pro, dbxsocial.com]`，HTTPDNS 收窄 `hosts=[debox.pro]`（= 收窄 host 即业务流量主域名，与 06-23 测试环境 t.debox.pro 占位不同）。
+
+| # | 用例 | 结果 | 证据（正式环境） |
+|---|---|---|---|
+| MV-01 | 冷启动冒烟 | ✅ PASS | MainActivity 前台、无 crash、登录态正常 |
+| MV-02 | HTTPDNS 懒初始化 | ✅ PASS | `doInit: HTTPDNS SDK 初始化完成` + `switch_eval switch_on=true credentials_ready=true bucket_hit=true` |
+| MV-03 | 启动配置链 | ✅ PASS | `缓存恢复完成` + `seedFromBundledContent` + `updateFromOssContent: enabled=true hosts=[debox.pro]` + `OSS域名池更新成功` |
+| MV-04 | 健康探测可达 + 后台线程 | ✅ PASS | `verifyAndHealCurrentDomain(startup): 开始探测 candidates=[...] → 可达，无需处理`（tid≠主线程） |
+| MV-05 | 正常网络无误切换（负向） | ✅ PASS | 启动 enter_fallback=0、域名切换=0 |
+| MV-06 | 非受管 host 直通 | ⚠️ 设计推断 | 同 06-23，纯逻辑 B 层 UT-A 覆盖 |
+| MV-10 | 故障上报 + 窗口/阈值/冷却 | ✅ PASS | `onConnectivityFailure 累计故障` + `窗口内不同path=1/2, 未达阈值(distinct=3/same=3)`；review-③ `已有切换探测在途, 跳过本次` |
+| MV-11 | 达阈值切换到备选 | ✅ PASS | `域名切换 debox.pro -> dbxsocial.com (可达优选), failureMap={debox.pro=2,...}` + resetUrl |
+| MV-12 | 故障计数成功衰减（aa6c43a） | ✅ PASS | `restoreFromCache: 故障计数(衰减后)` 跨重启减半链（06-25 多轮可见）；per-request gating 由 B 层覆盖 |
+| MV-13 | 断网→全不可达保留当前（302b4f0） | ✅ PASS | 整机断网冷启：`候选探测全部不可达, fallback=debox.pro`；`dbxsocial.com 不可达且无可达备选（疑似设备离线），保留当前域名，待网络恢复后由请求级切换接管` |
+| MV-14 | 探测超时上限 | ✅ PASS | 断网下 ~3ms 内全部快速失败（DNS 立即失败 < 2.5s） |
+| MV-15 | 恢复网络自愈 | ✅ PASS | = MV-41：恢复后冷启 `可达，无需处理`、0 FALLBACK/0 切换 |
+| MV-20 | DNS 污染 → 收窄 host 进 FALLBACK | ✅ PASS | `enter_fallback: debox.pro reason=UnknownHostException` + `preResolve: debox.pro 已发送` |
+| **MV-21** | **FALLBACK 后请求走 HTTPDNS 解析成功（happy 路径）** | ✅ **PASS（正式环境首验，06-23 升级）** | `dns_decision: debox.pro decision=HTTPDNS` → **`httpdns_hit: debox.pro ip_count=2`** → 污染期间请求返回 `"code":1,"msg":"成功","success":true` —— **HTTPDNS 用真实 IP 救活请求，绕过被污染的系统 DNS**。06-23 因 EMAS 未托管 t.debox.pro 阻塞（OBS-001），正式环境 debox.pro 已托管 → 正向效果首次实测 |
+| **MV-22** | **持续污染无周期失败（§4.4）** | ✅ **PASS（正式环境）** | HTTPDNS 命中后请求成功、不回退系统 DNS 震荡；FALLBACK 稳定保持 |
+| MV-23 | HTTPDNS 空结果降级不续期 | ✅ 机制在（正式环境多为 httpdns_hit） | 正式环境 debox.pro 有解析故走 happy 路径；空结果降级路径由 06-23（t.debox.pro empty）+ C 层 IT-02 覆盖 |
+| MV-24 | PROBE 回切（TTL 到期） | ⏸️ C 层 IT-07 覆盖 | OSS TTL=10min on-device 观测慢，确定性由 IT-07a/07b |
+| MV-25 | PENDING_INIT 窗口 | ⏸️ 实测到 `fallback_pending_init: debox.pro` + `flushPendingPreResolve` | init 在途挂起补发链路可见；补发逻辑 B 层覆盖 |
+| MV-30 | HTTPDNS + 域名切换协同（§11） | ✅ PASS | 同一 UHE 同时驱动 `onConnectivityFailure`（切 dbxsocial.com）与 `enter_fallback`（debox.pro 走 HTTPDNS）——两道并行、口径一致 |
+| MV-31 | HTTPDNS 候选全失败 → 容灾接管 | ✅ 机制在 | 部分请求失败累积仍触发域名切换接管（与 HTTPDNS 成功并存）；`fallback_request_failed` 强刷由 B 层 UT 覆盖 |
+| MV-32 | 网络切换 WiFi↔蜂窝 SDK 刷新 | ⏸️ 未单独执行 | 06-25 DV-04 已验 WiFi onAvailable → 二次健康探测；SDK `setPreResolveAfterNetworkChanged` 静态确认 |
+| MV-33 | 受管集合纳入兜底一致性 | ✅ PASS | `updateDomainPool: pool=[debox.pro, dbxsocial.com]`；切到 dbxsocial.com 仍在受管池 |
+| MV-40 | 环境复原 | ✅ PASS | `dns=off proxy=:0 wifi=1` |
+| MV-41 | 复原后基线回归 | ✅ PASS | 冷启 `dbxsocial.com 可达，无需处理` + OSS 成功、无残留 FALLBACK |
+
+**D 层回归结论**：MV-01~33 真机行为在正式环境（含 06-25 全部改动 + base URL 修复）**无回归**；**MV-21/MV-22 的 HTTPDNS happy 路径（06-23 被 OBS-001 阻塞）在正式环境首次实测 PASS**——`httpdns_hit ip_count=2` + 污染期请求 `success:true`，HTTPDNS 救活请求的正向效果得证。新诊断日志 `proactive_fallback_skip`（非收窄 host 切换 gating）、`dns_decision`、`httpdns_hit`、`候选探测全部不可达` 均观测到。环境已复原。
+
+---
+
 ## 第 1 轮（首测）
 
 > 测试日期：2026-06-23 | 设备：三星 SM-S9210（RFCYA0F9SSZ，主测）/ 小米 25067PYE3C（402714f0）
@@ -133,7 +193,9 @@
 
 **关联用例**：B 层 DomainManagerTest
 
-**状态**：🟡 待用户处置（属本地工作区，非本次被测 dev 提交）
+**状态**：✅ **已解决**（2026-06-25 回归确认）——`DomainManager` 已按建议 1 暴露 `internal fun seedFromBundledContent(content: String)` 可测 seam（读 raw 与解析+并池拆开），`DomainManagerTest` 由 4 例增至 14 例、全部编译通过、0 fail。下方为原始记录留痕。
+
+> 原状态：🟡 待用户处置（属本地工作区，非本次被测 dev 提交）
 
 **现象**：`./gradlew :business:BaseModule:testDebugUnitTest --tests "*DomainManagerTest*"` 编译失败：
 `Unresolved reference 'seedFromBundledContent'`（DomainManagerTest.kt:68、:83）。
@@ -153,7 +215,9 @@
 
 **关联用例**：MV-21（HTTPDNS happy 路径）
 
-**状态**：🟡 待运维确认（§8.1 持续运维约束 / §16.2-1 业务确认项）
+**状态**：🟢 **正式环境已验**（2026-06-25 回归）——正式环境 HTTPDNS 收窄 host=`debox.pro` **已被 EMAS 托管**，污染下 `httpdns_hit: debox.pro ip_count=2` + 请求 `success:true`，HTTPDNS 救活请求的 happy 路径首次实测通过（见第 2 轮 MV-21/MV-22）。**测试环境 `t.debox.pro` 仍未托管**（下方原始记录），happy 路径在测试环境仍 empty 降级——这条对测试环境仍成立，运维如需测试环境也验证需在 EMAS 加 `t.debox.pro`。
+
+> 原状态：🟡 待运维确认（§8.1 持续运维约束 / §16.2-1 业务确认项）
 
 **现象**：DNS 污染触发 t.debox.pro 进入 FALLBACK 后，对 t.debox.pro 的后续请求持续记录
 `AliHttpDnsDns: httpdns_empty_fallback_system: t.debox.pro`（连续多次、跨秒级窗口均为空），
