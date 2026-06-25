@@ -74,3 +74,25 @@ adb -s <serial> logcat -d | grep -aiE "AliHttpDnsManager|HttpDnsConfig|HttpDnsFa
 - **故障计数启动衰减实测**：重启一次减半（15→7→3），`restoreFromCache: 故障计数(衰减后)=...` 可见。
 - **健康探测"全不可达保留当前域名"分支**：`checkCurrentDomainHealth: X 不可达且无可达备选（疑似设备离线），保留当前域名，待网络恢复后由请求级切换接管`（302b4f0 不再误清已生效选择）。
 - **resetUrl/切换在 domain-health-check 后台线程**，不阻塞启动；探测期 currentDomain 被请求级切换改写则 `当前域名已变更为 X，跳过回退`（防互相覆盖）。
+
+---
+
+## 自愈鲁棒性增强（2026-06-25 实测沉淀，9+1 改动 + 3 review 修复）
+
+### 新版日志关键词（相对 06-23 的增量，取证 grep 必加）
+- `onConnectivityFailure: 已有切换探测在途, 跳过本次` —— **review-③ `switchInProgress` 防并发**：释放锁做可达探测期间，并发失败线程跳过（不重复探测/切换）。`lastSwitchTime`（冷却）+清窗口**只在真切换成功时提交**，放弃切换不烧 30s 冷却。
+- `域名切换 X -> Y (可达优选)` —— B1：切换前锁外 `isTcpReachable(候选,1500ms)` 选首个可达；全候选不可达（全量污染）则**退回故障计数最小者仍切换**。
+- `isTcpReachable: <host> 不可达 - UnknownHostException` —— B1 探测逐候选，TCP-only（不证 TLS）。
+- `verifyAndHealCurrentDomain(startup|network-available): ...` —— 原 `checkCurrentDomainHealth` 改名；B3 网络变化（WiFi onAvailable）二次探测入口；`domain-health-check` 线程 loop-drain 不堆积。
+- `enter_fallback: <host> reason=proactive-domain-switch` —— ⑦/review-②：DNS 级切换时对**收窄 host** 提前置 FALLBACK。**仅 target 是 HTTPDNS 收窄 host（hosts=[t.debox.pro]）才触发**；target=debox.pro 这类非收窄 host 正确 no-op。
+- `HttpDnsRemoteConfig(..., hosts=[...], hostsConfiguredButEmpty=<bool>, ...)` —— review-①：配了非空 hosts 但归一化后全非法 → `hostsConfiguredButEmpty=true` → `isEffectiveHost` 安全失败（不放大作用域）。
+- `fetchOssDomains: OSS 下载失败/内容为空/hosts 解析为空，沿用 SP/内置兜底` —— ⑥：三类 OSS 失败各自落痕。
+
+### ⚠️ 取证陷阱
+- **`fetchOssDomains: OSS域名池更新成功, domainList=[...], currentDomain=X` 里的 domainList 打的是 OSS 原始 hosts，不含 `ensureFallbackDomains` 并入的内置兜底 `[debox.pro, dbxsocial.com]`**。真实池 = OSS hosts ∪ 兜底。故会出现 `domainList=[t.debox.pro, t.dbxsocial.com], currentDomain=debox.pro` 这种"看似出池"的误导日志——debox.pro 是兜底域名、实际在池，**不是 OSS 纠偏失效**。判断 currentDomain 是否真出池要算上兜底。
+- **dev 包 Android Studio Apply Changes 热更**：installed `versionName`/`lastUpdateTime` 可能不变，但代码已是工作区最新。判断设备是否跑新代码**别只看版本号**，看启动日志里的签名字段（如 `hostsConfiguredButEmpty=` 出现 = 含 review-① 新代码）。
+
+### 当前测试环境域名拓扑（conf_test.json）
+- OSS `domainList=[t.debox.pro, t.dbxsocial.com]` + 兜底 `[debox.pro, dbxsocial.com]`；`currentDomain` 启动多为 `t.dbxsocial.com`/`debox.pro`（随上次持久化）。
+- HTTPDNS 收窄 `hosts=[t.debox.pro]`、`abnormalTtlMs=600000`、`enabled=true`，密钥已注入（`doInit: HTTPDNS SDK 初始化完成`）。
+- EMAS 仍未托管 t.debox.pro → FALLBACK 后持续 `httpdns_empty_fallback_system: t.debox.pro`（空结果降级正确，happy 路径待控制台配置）。

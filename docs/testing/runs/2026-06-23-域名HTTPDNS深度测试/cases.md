@@ -3,6 +3,9 @@
 > 被测对象：**debox-android `dev` 分支**（版本 2.13.2 / versionCode 21300002），域名容灾与 HTTPDNS 两条优化线。
 > 方案文档：`docs/aliyun-httpdns-integration-plan.md`（§4 状态机 / §11 协作 / §12 降级 / §14 验证）、`docs/domain-failover.md`。
 > 优先级：P0 = 核心流程必须通过 / P1 = 重要但非阻断 / P2 = 边界/探索场景
+>
+> **⚠️ 增量提示**：本链路后续又做了一轮自愈鲁棒性增强（OSS 纠偏即时生效 / 单接口兜底切换 / 请求自动重发 / 切换前可达优选 / 网络变化二次探测 / 自愈事件落盘），用例见
+> `docs/testing/runs/2026-06-25-域名HTTPDNS自愈鲁棒性增强/cases.md`。本文档已就地修正受其影响的失真项（PRE-02/07、MV-04/10/11/13、取证 grep）。
 
 ## 项目信息
 
@@ -113,12 +116,12 @@ OSS 段兼容：嵌套 httpdns 段优先，回退扁平 httpdns_* 字段；段�
 | # | 用例 | 验证标准 | 依据 | 优先级 |
 |---|------|----------|------|--------|
 | PRE-01 | HTTPDNS 密钥已注入（本轮关键前提） | `local.properties` 含非空 `HTTPDNS_ACCOUNT_ID`/`SECRET_KEY`/`AES_SECRET_KEY` → 构建产物 `hasCredentials()=true` | §10 | P0 |
-| PRE-02 | `RetrofitFactory` 挂接 `.dns(AliHttpDnsDns())` + `addInterceptor(DomainSwitchInterceptor())` + `.proxy(NO_PROXY)` | 三者均在；DomainSwitchInterceptor 为首个 application 拦截器 | §13-P1.7 | P0 |
+| PRE-02 | `RetrofitFactory` 挂接 `.dns(AliHttpDnsDns(log=...))` + `addInterceptor(DomainSwitchInterceptor())` + `.proxy(NO_PROXY)` | 三者均在；拦截器顺序为 `CrashContextInterceptor`(首个) → `DomainSwitchInterceptor` → Head → Log（CrashContext 仅记录上下文、不触碰 DNS，不影响 DomainSwitch 的解析上下文处理） | §13-P1.7 | P0 |
 | PRE-03 | DomainManager 三处 HTTPDNS 挂接 | `bootstrap(domainListSnapshot())` / `HttpDnsConfig.updateFromOssContent()` / `updateDomainPool(domainListSnapshot())` 均存在 | §13-P1.8/13 | P0 |
 | PRE-04 | **`2a4e940` 落地**：受管集合纳入兜底域名 | `AliHttpDnsManager.builtinHosts` 含 `dbxsocial.com`；`fetchOssDomains` 用 `domainListSnapshot()`（含兜底）刷新受管集合 | 2a4e940 | P0 |
 | PRE-05 | **`92250d4` 落地**：状态机原子初始化 | `HttpDnsFallbackPolicy.decide`/`markNetworkAbnormal` 用 `computeIfAbsent`（非 getOrPut） | 92250d4 | P0 |
 | PRE-06 | **`302b4f0` 落地**：兜底池 + 启动健康探测 | `DomainManager.fallbackDomains=[HOST, dbxsocial.com]`；`ensureFallbackDomains()` 始终注入；`checkCurrentDomainHealth()` 后台线程 | 302b4f0 | P0 |
-| PRE-07 | **`cabeff8` 落地**：连通性口径 | `DomainSwitchInterceptor.isConnectivityFailure` 覆盖 UHE/Connect/NoRoute/SSL/SocketTimeout(connect)；读写超时不计入 | cabeff8 | P0 |
+| PRE-07 | **`cabeff8` 落地**：连通性口径 | 拦截器切换/HTTPDNS 用 `NetworkFailures.isDomainSwitchSignal`，覆盖 UHE/Connect/NoRoute/SSL/SocketTimeout(connect)；读写超时不计入（请求层重发另用更窄的 `isReplaySafe`，排除 SSL，见 06-25 PRE-A6） | cabeff8 | P0 |
 | PRE-08 | 内置兜底 conf 打包 | `res/raw/httpdns_conf_v2_fallback.json` 存在且 `httpdns_enabled=true`、`hosts/httpdns_hosts` 合法 | §9 | P1 |
 | PRE-09 | release 强校验密钥 | `BaseBusiness/build.gradle` 在 minify 包缺密钥时 `throw`（防静默禁用上线） | §10 F7c | P1 |
 | PRE-10 | 混淆 keep | `-keep class com.alibaba.sdk.android.httpdns.**` 存在 | §13-P1.5 | P1 |
@@ -190,7 +193,7 @@ OSS 段兼容：嵌套 httpdns 段优先，回退扁平 httpdns_* 字段；段�
 | MV-01 | 冷启动冒烟 | terminate → launch → 进首页 | 无 crash，进首页，登录态/测试环境正常 | P0 |
 | MV-02 | HTTPDNS 懒初始化 + 启动预热 | 冷启动抓 logcat | `doInit: HTTPDNS SDK 初始化完成`；开关 true 触发 `ensureInitialized`；对收窄域名预解析（无 `密钥缺失`） | P0 |
 | MV-03 | 启动配置链取证 | 冷启动抓 logcat | `restoreFromCache: 缓存域名池(含兜底)` 非空；`updateFromOssContent: ...enabled=true...hosts=[t.debox.pro]`；`fetchOssDomains: OSS域名池更新成功` | P0 |
-| MV-04 | 启动健康探测·可达分支 + 后台线程 | 网络正常冷启动抓 logcat | `checkCurrentDomainHealth: 当前域名 X 可达，无需处理`；探测 tid≠主线程（`domain-health-check`）；UI 不被阻塞 | P0 |
+| MV-04 | 启动健康探测·可达分支 + 后台线程 | 网络正常冷启动抓 logcat | `verifyAndHealCurrentDomain(startup): 当前域名 X 可达，无需处理`；探测 tid≠主线程（`domain-health-check`）；UI 不被阻塞 | P0 |
 | MV-05 | 正常网络仍走系统 DNS（负向） | 正常浏览/下拉刷新 30s | 解析来源全系统 DNS；**0 条 `enter_fallback`**、0 次 HTTPDNS 解析（正常用户不被接管） | P0 |
 | MV-06 | 非受管 host 零开销直通 | 浏览触发第三方/RPC 请求（行情/EVM 节点） | 第三方 host 无 `enter_fallback`、无域名切换上报（不污染主决策） | P1 |
 
@@ -198,10 +201,10 @@ OSS 段兼容：嵌套 httpdns 段优先，回退扁平 httpdns_* 字段；段�
 
 | # | 用例 | 步骤 | 验证标准 | 优先级 |
 |---|------|------|----------|--------|
-| MV-10 | 连通性故障上报 + 窗口/阈值/冷却判定 | DNS 污染注入 → 下拉刷新×N 触发多接口请求 | `onConnectivityFailure: ...累计故障` 累加；窗口内不同 path 计数；`未达阈值`/`冷却期中`/`域名切换 A -> B` 判定链可见 | P0 |
-| MV-11 | 达阈值真实切换到备选域名 | 同上持续触发至阈值且过冷却 | `域名切换 debox.pro -> t.debox.pro`（或其他可达备选）+ `resetUrl`；currentDomain 持久化 | P0 |
+| MV-10 | 连通性故障上报 + 窗口/阈值/冷却判定 | DNS 污染注入 → 下拉刷新×N 触发多接口请求 | `onConnectivityFailure: ...累计故障` 累加；`窗口内不同path=X/同path=Y, 未达阈值(distinct=3/same=3)`/`冷却期中`/`域名切换 A -> B (可达优选)` 判定链可见（单接口 same-path 兜底见 06-25 DV-01） | P0 |
+| MV-11 | 达阈值真实切换到备选域名 | 同上持续触发至阈值且过冷却 | `域名切换 debox.pro -> t.debox.pro (可达优选)`（或其他可达备选）+ `resetUrl`；currentDomain 持久化 | P0 |
 | MV-12 | 成功衰减按当前域名 gating（aa6c43a） | 切换/恢复后对当前域名成功请求 | `onRequestSuccess` 仅当前域名清窗口+故障-1；池内其他域名成功不误清 | P1 |
-| MV-13 | 断网启动→健康探测全不可达分支（302b4f0） | 先 `svc wifi/data disable` → 冷启动 → 抓 logcat → 复原 | `isReachable: X 不可达`；`不可达且无可达备选（疑似设备离线），保留当前域名`（不再误清已生效选择）；不 crash | P1 |
+| MV-13 | 断网启动→健康探测全不可达分支（302b4f0） | 先 `svc wifi/data disable` → 冷启动 → 抓 logcat → 复原 | `isReachable: X 不可达`；`verifyAndHealCurrentDomain(startup): X 不可达且无可达备选（疑似设备离线），保留当前域名`（不再误清已生效选择）；不 crash | P1 |
 | MV-14 | 探测不可达域名超时上限 | MV-13 中观察探测耗时 | 单域名探测 ≤ ~2.5s，不长时间卡启动 | P2 |
 | MV-15 | 恢复网络后自愈 | `svc wifi/data enable` → 触发请求 | 请求恢复成功；故障计数衰减；App 正常用 | P0 |
 
@@ -273,7 +276,7 @@ S=RFCYA0F9SSZ   # 三星主测；小米用 402714f0
 adb -s $S logcat -c
 adb -s $S shell am force-stop com.tm.security.wallet
 adb -s $S shell monkey -p com.tm.security.wallet -c android.intent.category.LAUNCHER 1
-adb -s $S logcat -d | grep -aiE "DomainManager|AliHttpDnsManager|HttpDnsConfig|HttpDnsFallbackPolicy|AliHttpDnsDns|domain-health|enter_fallback|probe_success|probe_fail|fallback_pending_init|httpdns_empty_fallback_system|httpdns_error_fallback_system|域名切换|累计故障"
+adb -s $S logcat -d | grep -aiE "DomainManager|AliHttpDnsManager|HttpDnsConfig|HttpDnsFallbackPolicy|AliHttpDnsDns|FLogger|domain-health|verifyAndHealCurrentDomain|enter_fallback|probe_success|probe_fail|fallback_pending_init|httpdns_empty_fallback_system|httpdns_error_fallback_system|域名切换|可达优选|自动重发|累计故障"
 
 # DNS 污染（可逆，触发 UHE 进拦截器）
 adb -s $S shell settings put global private_dns_mode hostname
