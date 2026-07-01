@@ -186,7 +186,7 @@
 |---|------|------|------|
 | MV-30 | HTTPDNS + 域名切换协同（§11） | ✅ PASS | 同一 UnknownHostException 在同一时间线同时驱动 `DomainManager.onConnectivityFailure`（切 t.dbxsocial.com）与 `HttpDnsFallbackPolicy.enter_fallback`（t.debox.pro）——两道机制口径一致、互不替代 |
 | MV-31 | HTTPDNS 候选全失败 → 容灾接管 | ⚠️ 部分 | HTTPDNS 空（非"候选 IP 全失败"）故 `forceReResolve`/`fallback_request_failed` 未触发；"异常继续进 DomainSwitch → 域名切换接管"已验（MV-11/30） |
-| MV-32 | 网络切换 WiFi↔蜂窝 SDK 刷新 | ⏸️ 未执行 | 需蜂窝数据环境，本轮 WiFi 测试机未覆盖；SDK `setPreResolveAfterNetworkChanged(true)` 已静态确认 |
+| MV-32 | 网络切换 WiFi↔蜂窝 SDK 刷新 | ✅ **PASS（可 root 模拟器补测 2026-07-01）** | 原 ⏸️（需蜂窝）；后用 `debox_root` 双网（WIFI+CELLULAR），`svc wifi disable` 切蜂窝 → `efs.info.manager: network change: 3g`（阿里云 HTTPDNS SDK 感知网络切换刷新）+ JuggleIM `Network-Change` + `DeviceStatusMonitor: METERED`。详见 `2026-07-01-HTTPDNS回环bogon兜底` run 第 2 轮 |
 | MV-33 | 受管集合纳入兜底域名一致性（2a4e940） | ✅ PASS | dbxsocial.com 始终在 domainList + builtinHosts；切到该兜底域名时仍受 HTTPDNS 管理（PRE-04 静态 + 运行态池快照含兜底） |
 
 #### D5 测后复原
@@ -198,7 +198,8 @@
 
 **本轮统计**：
 - 自动化层（TC-P 3 + A 10 + B 69 跑 + C 9）：**全 PASS**，0 failures
-- D 层真机（25 条）：**PASS 16 / 部分 3（C/B 层已覆盖）/ 外部依赖阻塞 1（MV-21）/ 未执行 1（MV-32 需蜂窝）/ 设计推断 1（MV-06）/ 覆盖性跳过 3（MV-22/24/25 → C/B 层）**
+- D 层真机（25 条）：**PASS 16 / 部分 3（C/B 层已覆盖）/ 外部依赖阻塞 1（MV-21）/ 补测 PASS 1（MV-32，2026-07-01 可 root 模拟器双网）/ 设计推断 1（MV-06）/ 覆盖性跳过 3（MV-22/24/25 → C/B 层）**
+  > MV-24（PROBE-TTL 回切,OSS 10min）/ MV-25（PENDING_INIT<40ms 窗口）经 2026-07-01 评估**非 root 可解锁**（卡点是时序/OSS 远端,非 non-root），维持 IT-07/UT-34 确定性覆盖结论。
 - 客户端代码层 **0 FAIL**；2 个非 PASS 项均为外部/本地因素（OBS-001 控制台运维项、BUG-001 本地工作区坏测试），非 dev 分支缺陷
 
 ---
