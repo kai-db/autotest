@@ -41,7 +41,7 @@ com.autotest
 2. **按用例执行** — `docs/testing/TEST_CASES.md` 是唯一用例来源
 3. **监工模式** — 使用 `/loop 5m` 定时检查测试执行状态，防止 AI 卡住
 4. **最小人工介入** — 尽量减少人为操控，除验证码等必须环节外全部 AI 自主完成
-5. **修复必须合规** — 符合修复原则（见 `docs/testing/TEST_GUIDE.md` 第四节）
+5. **修复走 agent-dev-loop** — 分析问题/修复代码**不直接改**，必须走 `agent-dev-loop` skill（Claude 计划/实现/修复/记录 + Codex 只读独立 review 闭环）：建 `docs/implementation/YYYY-MM-DD-动词-对象/` 任务目录 → plan → Codex plan review → 实现 → Codex 实现 review → 回写 results.md。修复原则见 `TEST_GUIDE.md` 第四节，闭环步骤见第六节
 6. **先读知识库** — AI 测试 session 先读 `docs/testing/app-knowledge/`（元素表/弹窗/**危险操作清单**），探索产物回写
 7. **危险操作 pre-action 比对** — 点击前比对 `app-knowledge/dangerous-ops.md`，命中先停（钱包 App 误操作不可逆）；禁止清数据/登出/切环境
 
@@ -53,14 +53,14 @@ com.autotest
 
 ## 测试流程
 
-> 详细流程见 `docs/testing/TEST_GUIDE.md`（第五节：自动化闭环流程）。
+> 详细流程见 `docs/testing/TEST_GUIDE.md`（第五节：自动化闭环流程；**第六节：修复走 agent-dev-loop**）。
 > **监工模式**：测试期间使用 `/loop 5m` 每 5 分钟检查 AI 执行状态，发现卡住时自动恢复。
 
 ```
-Phase 1: 确认环境（设备在线 → App 可启动）
+Phase 1: 确认环境（设备在线，无设备则启动模拟器 → App 可启动）
 Phase 2: 全量测试（按 P0→P1→P2 遍历用例，每条重置+截图验证）
 Phase 3: 更新文档（结果写入 TEST_RESULTS.md，先记录再修复）
-Phase 4: 全部修复（分析根因 → 修复代码 → 记录方案）
+Phase 4: 全部修复（**走 agent-dev-loop**：建任务目录 → plan → Codex review → 实现 → Codex review → 回写）
 Phase 5: 回归测试（全量重跑）
   └── 仍有 FAIL → 回到 Phase 3
   └── 全部 PASS → Phase 6 最终验收

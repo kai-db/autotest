@@ -106,6 +106,14 @@ docs/testing/
 
 > 启动口令：「跑一轮完整测试」
 
+> ⚠️ **强制规则（mandatory）**：本节流程不可跳过、不可简化、不可合并步骤。必须严格按
+> Phase 1→2→3→4→5→6 顺序执行，每个 Phase 的子步骤都要完整跑完。任何"为了效率"省略环节
+> 的行为都是违规。对流程有优化建议，先提出 → 获得用户确认 → 改本文档，再执行，不得自行省略。
+>
+> **修复必须走 `agent-dev-loop` skill**：Phase 4 分析问题、修复代码**不直接改**，而是用
+> Claude 计划/实现/修复/记录 + Codex 只读独立 review 的协作闭环（详见「六、修复阶段走
+> agent-dev-loop」）。
+
 ### 前提条件
 
 | 前提 | 说明 |
@@ -131,7 +139,7 @@ docs/testing/
 ══════════════════════════════════════════════════════════
 
   Phase 1: 确认环境
-  设备在线 → App 可启动
+  设备在线（无设备则启动模拟器）→ App 可启动
       │
       ▼
   Phase 2: 全量测试
@@ -143,8 +151,9 @@ docs/testing/
   将本轮全部结果写入 results.md（先记录再修复）
       │
       ▼
-  Phase 4: 全部修复
-  汇总 FAIL → 分析根因 → 修复代码 → 记录修复方案
+  Phase 4: 全部修复（走 agent-dev-loop skill，见第六节）
+  汇总 FAIL → 逐个用 agent-dev-loop 修：建任务目录 →
+  plan → Codex plan review → 实现 → Codex 实现 review → 回写 results.md
       │
       ▼
   Phase 5: 回归测试
@@ -167,10 +176,10 @@ docs/testing/
 
 ### 关键规则
 
-- 每轮都是**全量测试**，不能只跑 FAIL 用例
+- 每轮都是**全量测试**，不能只跑 FAIL 用例；**"剩几条 ⏸️ 待执行"不算跑完**，要么跑完要么写明阻塞原因
 - 必须**先更新文档（Phase 3）再修复代码（Phase 4）**
-- 最终验收是**独立的全新测试**，不复用之前结果
-- 验收阶段发现问题回到迭代修复阶段，不在验收阶段内修复
+- **Phase 4 修复必须走 `agent-dev-loop` skill**（建 `docs/implementation/` 任务目录 + Codex review 闭环），不直接改代码——见第六节
+- 最终验收是**独立的全新测试**，不复用之前结果；**验收阶段发现问题回到迭代修复阶段，不在验收阶段内就地修**
 
 ### 监工模式
 
@@ -179,3 +188,36 @@ docs/testing/
 ```
 /loop 5m 检查当前测试执行状态，如果卡住了就恢复继续
 ```
+
+---
+
+## 六、修复阶段走 agent-dev-loop（强制）
+
+> Phase 4 的每个 FAIL，以及测试中发现的代码问题，都必须经此闭环修复，**不直接改代码**。
+
+### 为什么
+
+直接改代码 = 无独立 review、无 plan 基线、无 VERDICT 把关，容易引入回归、漏验证根因。
+agent-dev-loop 让 Codex 以**只读**身份独立评审 plan 与改动，形成"计划→评审→实现→评审"闭环。
+（历次测试都没走这步——`docs/implementation/` 至今为空，这正是要纠正的偏离。）
+
+### 步骤（每个待修问题一遍）
+
+1. **建任务目录** `docs/implementation/YYYY-MM-DD-动词-对象/`，默认四件：
+   `index.md`（权威入口：当前 Status + 最终 VERDICT）/ `plan.md` / `implementation.md` / `review.md`
+2. **写 plan** → 调 Codex 做 plan review（只读）→ 修到 `VERDICT: PASS` 或
+   `PASS_WITH_ACCEPTED_RISK` → 在 `plan.md` 写下 `Accepted Plan` 基线
+3. **按基线实现**，进度/偏差记 `implementation.md`；真遇歧义/风险再 consult Codex
+4. **自检后**调 Codex review 改动（对照 Accepted Plan）→ 修到无 Critical、无遗留 Important
+5. **收尾**：`index.md` 写权威 Status / 最终 VERDICT / 小结；可复用经验回写
+   `docs/lessons.md`（项目级）或全局 ledger
+6. **回写 results.md**：该 FAIL 的修复结论 + 链接到对应 `docs/implementation/` 任务目录
+
+### 硬规则
+
+- `VERDICT`（`PASS` / `FAIL` / `PASS_WITH_ACCEPTED_RISK`）驱动状态机；findings 只报 confidence ≥ 80 的 `Critical` / `Important`
+- 循环上限：plan review 3 轮、实现 review/fix 5 轮、consult 3 轮 → 超限升级给用户
+- Codex **只读**（不传 `--write`）；不写密钥到代码/文档/日志；高风险操作先问用户
+
+> 完整协议见 `agent-dev-loop` skill。被测 App（DeBox）代码在 `debox-android` 工作区；
+> autotest 框架自身代码改动同样走本闭环。
