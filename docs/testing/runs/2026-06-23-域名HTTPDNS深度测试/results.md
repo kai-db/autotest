@@ -5,6 +5,22 @@
 
 ---
 
+## 第 3 轮（可 root 模拟器补测，2026-07-01）
+
+> 触发原因：把 06-23「已知不可黑盒覆盖项」里因「非 root 不能单域名封堵」「需 clear data 违反铁律」而只能靠代码/UT 覆盖的 case，用**可 root 模拟器**补黑盒实测。
+> 环境：命令行建 AVD `debox_root`（`system-images;android-35;google_apis;arm64-v8a` = userdebug **可 root**）；`adb install` 真机 pull 的 base.apk（2.14.0）。**钱包 App 在 rooted 模拟器正常跑**（图灵盾 `com.turingfd.sdk` 不拦——`adb root` 不装 su，典型 root 检测不触发）。软键盘（RN 输入框）唤起失败 → 用 `adb shell input text` 注入密码创建测试钱包 → 进 MainActivity、完整域名 init 跑起。
+
+| 原不可黑盒覆盖项（06-23） | 补测手段 | 结果 |
+|---|---|---|
+| **新装首启注入兜底池 / 内置 conf seed（cache 空路径）** | 卸载重装 → 冷启（SP 空） | ✅ **PASS**：`restoreFromCache: 缓存域名池(含兜底)=[debox.pro, dbxsocial.com]`（ensureFallbackDomains 注入兜底）+ `seedFromBundled: 内置 conf 兜底生效` + `seedFromBundledContent` + `bootstrapEarly: 完成` |
+| **健康探测"切到可达备选"分支（一坏一好选择性封堵）** | `adb root` + `iptables -A OUTPUT -d 198.18.0.9 -j REJECT`（模拟器 DNS-NAT 给 debox.pro 分配的假 IP），留 dbxsocial.com（198.18.0.64）可达 | ✅ **PASS**：`isTcpReachable: debox.pro 不可达 - ConnectException` → `候选探测结果=[dbxsocial.com=true], selected=dbxsocial.com, selected_reachable=true` → `debox.pro 不可达，切换到可达域名 dbxsocial.com` → 切后 `dbxsocial.com 可达，无需处理` |
+| **可达优选选"好"域名（B1 核心，非退化最小计数）** | 同上 | ✅ **PASS**（顺带）：`selected_reachable=true` 证明选的是**可达**域名而非仅按计数 |
+| **DV-09 TCP 可连但 TLS 失败边界（06-25 P2，原标 N/A 非 root 不可构造）** | Mac 起假 TLS 服务器（接受 TCP、回明文使握手失败）；emulator `iptables -t nat DNAT dbxsocial.com 假 IP:443 → 10.0.2.2:8443` | ✅ **PASS（三层全中）**：① `isTcpReachable` TCP-only 误判 `dbxsocial.com 可达，无需处理`（TLS 已断，健康探测抓不到→**TCP 可达≠业务可用**实证）② 业务请求 `SSLException: Unable to parse TLS packet header`（code=-95）③ SSL 触发 `域名切换 dbxsocial.com -> debox.pro`（isDomainSwitchSignal 含 SSL），但 `domain_retried=false`、**无 `自动重发`**（isReplaySafe 排除 SSL，POST 防重放，正确不重发） |
+
+**补测结论**：06-23 标"非 root 难构造/违反铁律"的 3 条 + 06-25 标 N/A 的 DV-09，用**可 root 模拟器 + iptables 单封/DNAT DNS-NAT 假 IP + Mac 假 TLS 服务器 + adb 注入输入**，**全部首次黑盒实测 PASS**。技术路径全通（可 root 镜像 / 钱包 App 可跑 / 单域名精确封堵 / TCP-ok-TLS-fail 可构造 / 无键盘也可输入）。测后 iptables/nat/hosts/假服务器全清、模拟器恢复健康（App 在 debox.pro、可达、OSS 成功、无残留 SSL/切换）。
+
+---
+
 ## 第 2 轮（回归，2026-06-25）
 
 > 触发原因：06-25「域名HTTPDNS自愈鲁棒性增强」对同一链路做了 9 项改动 + 1 重构 + review-①②③ + base URL 同步修复，回归确认未破坏 06-23 既有行为。

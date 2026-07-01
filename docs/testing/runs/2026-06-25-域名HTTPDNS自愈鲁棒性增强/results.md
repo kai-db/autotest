@@ -34,7 +34,7 @@
 | DV-06 flog 落盘 | ✅ **PASS** | 正式环境完整自愈链 JSON 结构化落 `dbx_log/flog`，含 `domain_retry_dispatch` |
 | DV-07 基线回归 | ✅ **PASS** | 复原后冷启 `debox.pro 可达，无需处理`、无残留 FALLBACK、OSS 成功、App 正常 |
 | DV-08 ⑦ proactive | ✅ 幂等正确 | 收窄 host debox.pro 切换前已经正常路径进 FALLBACK → markProactiveFallback **幂等 no-op**（review-② 生效）；happy-path（`reason=proactive-domain-switch`）结构性不可复现（收窄 host 恒先收流量） |
-| DV-09 TLS 边界 | N/A | 非 root 不可构造，文案不宣称 TLS |
+| DV-09 TLS 边界 | ✅ PASS（可 root 模拟器补测 2026-07-01） | 原标 N/A（非 root 不可构造）；后用可 root 模拟器 + iptables DNAT 到 Mac 假 TLS 服务器实测三层全中：`isTcpReachable` TCP-only 误判可达 / 业务 `SSLException` / SSL 触发切换但 `domain_retried=false` 无重发。详见 06-23 `results.md` 第 3 轮 |
 | DV-10 full URL 不重发 | ✅ **PASS** | 同轮 `official`（getOfficialDomain full-URL）失败无 `自动重发`，相对路径全重发 |
 
 **Bonus（review 修复真机佐证）**：review-③ `switchInProgress`（`已有切换探测在途, 跳过本次`）；竞态保护（`当前域名已变更，跳过回退`）；全不可达保留当前；新诊断日志 `enter_fallback_skip`（非收窄 host 正确跳过 HTTPDNS）。
