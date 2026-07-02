@@ -2,6 +2,25 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.7.2] - 2026-07-02
+
+> 主题：debox 1.7.1 接入回归暴露 A2（protobuf-lite exclude）根治不完整，补全 + 加护栏。
+
+### Fixed
+- **A2 protobuf-lite exclude 补全**：1.7.1 只在 espresso-core 上 exclude protobuf-lite，但 protobuf-lite
+  另有 `espresso-contrib → accessibility-test-framework:3.1.2 → protobuf-lite:3.0.1` 路径（espresso-contrib
+  是 implementation、传到接入方 runtime classpath、无 exclude）→ 接入方删手动 workaround 后 protobuf-lite
+  重回 androidTest classpath，复现 G3-① 冲突风险。本版对 espresso-contrib + espresso-intents 也加 exclude。
+
+### Added
+- **回归护栏 `verifyNoProtobufLite` gradle 任务**：查 debugAndroidTestRuntimeClasspath 依赖图（resolutionResult，
+  不解析 artifact 避 variant 歧义），有 protobuf-lite 即 fail——堵住「只断言单个 dep 的 POM exclusion」的漏
+  （1.7.1 的 POM 断言只查 espresso-core，漏了别路径）。
+
+### 验证
+- debox 1.7.2 接入回归 Tier A 全绿：androidTest classpath protobuf-lite=0、hamcrest 在、主 App APK 无 com.autotest、
+  dex 正对照通过。（任务：debox `docs/implementation/2026-07-02-regress-autotest-1.7.1/`）
+
 ## [1.7.1] - 2026-07-02
 
 > 主题：一次全框架架构审计后的四批加固（每批走 agent-dev-loop + Codex 双 gate）。

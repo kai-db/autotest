@@ -6,7 +6,7 @@ plugins {
 
 def LIB_GROUP = "com.autotest"
 def LIB_ARTIFACT = "autotest"
-def LIB_VERSION = "1.7.1"
+def LIB_VERSION = "1.7.2"
 
 android {
     compileSdk 35
@@ -59,17 +59,43 @@ dependencies {
     // 公开 API（EspressoExt/WaitUtil）暴露 org.hamcrest.Matcher，按 Gradle 语义必须自己 api 声明，
     // 否则接入方 exclude/降级 espresso 时 NoClassDefFoundError（G3-hamcrest 教训，框架侧根治）
     api "org.hamcrest:hamcrest:2.2"
-    // espresso-core 传递带入的旧 protobuf-lite 会与宿主 App 的 protobuf-javalite 冲突（G3-①）；
-    // 在此 exclude 会写进发布 POM 的 <exclusions>，一处根治所有接入方，无需各自排
+    // 旧 protobuf-lite 会与宿主 App 的 protobuf-javalite 冲突（G3-①）。protobuf-lite 有两条传递路径:
+    // ① espresso-core 直接传递;② espresso-contrib → accessibility-test-framework → protobuf-lite。
+    // 两条都要 exclude(1.7.1 只排了 ①,debox 1.7.2 回归实测 ② 经 espresso-contrib 漏进接入方 runtime classpath)。
+    // exclude 写进发布 POM/.module,一处根治所有接入方,无需各自排。
     api("androidx.test.espresso:espresso-core:3.5.1") {
         exclude group: 'com.google.protobuf', module: 'protobuf-lite'
     }
     api "androidx.test.uiautomator:uiautomator:2.3.0"
 
     implementation "com.google.code.gson:gson:2.10.1"
-    implementation "androidx.test.espresso:espresso-contrib:3.5.1"
-    implementation "androidx.test.espresso:espresso-intents:3.5.1"
+    implementation("androidx.test.espresso:espresso-contrib:3.5.1") {
+        exclude group: 'com.google.protobuf', module: 'protobuf-lite'
+    }
+    implementation("androidx.test.espresso:espresso-intents:3.5.1") {
+        exclude group: 'com.google.protobuf', module: 'protobuf-lite'
+    }
     implementation "androidx.test.espresso:espresso-idling-resource:3.5.1"
+}
+
+// 回归护栏(1.7.2 加):验证 resolved androidTest runtime classpath 全无 protobuf-lite——
+// 直接查 resolved 图,堵住「只断言某单个 dep 的 POM exclusion」的漏(1.7.1 只排 espresso-core,漏了
+// espresso-contrib→accessibility-test-framework 路径,debox 1.7.2 回归实测暴露)。protobuf-lite 与宿主
+// protobuf-javalite 冲突会让 JuggleIM protobuf 类 NoSuchMethodError FATAL(G3-①)。
+tasks.register("verifyNoProtobufLite") {
+    doLast {
+        def cfg = configurations.findByName("debugAndroidTestRuntimeClasspath")
+        if (cfg == null) { println "[verifyNoProtobufLite] 跳过:无 debugAndroidTestRuntimeClasspath"; return }
+        // 查依赖图(resolutionResult,不解析 artifact,避开含本工程时的 variant 歧义)
+        def hit = cfg.incoming.resolutionResult.allComponents.findAll {
+            it.moduleVersion?.group == 'com.google.protobuf' && it.moduleVersion?.name == 'protobuf-lite'
+        }
+        if (!hit.isEmpty()) {
+            throw new GradleException("protobuf-lite 仍在 androidTest classpath(G3-① 冲突风险): " +
+                hit.collect { it.moduleVersion.toString() }.join(", ") + " —— 检查各 espresso 依赖的 exclude")
+        }
+        println "[verifyNoProtobufLite] ✅ androidTest classpath 无 protobuf-lite"
+    }
 }
 
 afterEvaluate {
