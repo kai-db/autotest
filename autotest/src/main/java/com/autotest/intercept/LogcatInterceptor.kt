@@ -32,8 +32,9 @@ class LogcatInterceptor(
     private val logcatFiles = mutableMapOf<String, String>()
 
     override fun beforeStep(ctx: StepContext) {
-        // 每个步骤开始前清空 logcat，只收集本步骤的日志
-        // （logcat -c 抹掉步骤前 crash 痕迹的问题属审计 D3，留后续批次处理，本批仅改 key 隔离）
+        // 仅当本步骤确实要收集日志时才清空 logcat（D3）：否则无条件 `logcat -c` 会抹掉
+        // LogcatAnalyzer 依赖的「步骤前 crash 痕迹」（如上一步/启动时的 FATAL）。
+        if (!collectOnFailure && !collectOnSuccess) return
         try {
             device.executeShellCommand("logcat -c")
         } catch (e: Throwable) {

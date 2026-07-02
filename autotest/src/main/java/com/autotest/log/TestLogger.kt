@@ -13,6 +13,13 @@ interface TestLogger {
     fun e(tag: String, msg: String, throwable: Throwable? = null)
 }
 
+/**
+ * 默认日志器。
+ *
+ * **线程安全（Q9）**：`SimpleDateFormat` 非线程安全，用 [ThreadLocal] 每线程独立（无锁）；
+ * 文件写入段 `synchronized(this)`。**假设：一个 DefaultTestLogger 实例对应一个日志文件**
+ * （现用法=每测试一实例、文件名带秒级时间戳）；跨实例写同一文件不在设计目标内（需文件级锁，超范围）。
+ */
 class DefaultTestLogger(
     private val logToFile: Boolean = true,
     private val logToLogcat: Boolean = true,
@@ -27,7 +34,12 @@ class DefaultTestLogger(
 
     enum class LogLevel { DEBUG, INFO, WARN, ERROR }
 
-    private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
+    // ThreadLocal：SimpleDateFormat 非线程安全，每线程独立避免并发抛 ArrayIndexOutOfBounds / 时间戳错乱。
+    // 用匿名 ThreadLocal 覆写 initialValue，而非 ThreadLocal.withInitial（后者是 API 26+，minSdk24 会 NoSuchMethodError）。
+    private val timeFormat = object : ThreadLocal<SimpleDateFormat>() {
+        override fun initialValue() = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
+    }
+
     private val logFile: File by lazy {
         val dir = File(logDir ?: com.autotest.config.TestConfig.screenshotDir)
         if (!dir.exists() && !dir.mkdirs()) {
@@ -52,7 +64,7 @@ class DefaultTestLogger(
     private fun log(level: LogLevel, tag: String, msg: String) {
         if (level.ordinal < minLevel.ordinal) return
 
-        val time = dateFormat.format(Date())
+        val time = timeFormat.get().format(Date())
         val formatted = "[$time] ${level.name.first()} [$tag] $msg"
 
         if (logToLogcat) {
@@ -65,8 +77,9 @@ class DefaultTestLogger(
         }
 
         if (logToFile) {
+            // 写文件段同步：多线程共写同一文件时避免行交错（单实例/单文件假设见类 KDoc）
             try {
-                logFile.appendText("$formatted\n")
+                synchronized(this) { logFile.appendText("$formatted\n") }
             } catch (e: Exception) {
                 // 文件写入失败不影响测试；留痕到 logcat（不可再走本 logger，避免递归）
                 Log.w("AutoTest", "日志文件写入失败: ${e.message}")

@@ -253,7 +253,13 @@ class MonitorMode(
             sb.appendLine("|---|---|---|---|")
 
             round.results.forEach { r ->
-                val status = if (r.passed) "✅ PASS" else "❌ FAIL"
+                // 失败标注 [INFRA]/[ASSERTION]（Q7）：一眼分「环境没准备好」与「用例真失败」
+                val kind = when (r.failureKind) {
+                    FailureKind.INFRA -> " [INFRA]"
+                    FailureKind.ASSERTION -> " [ASSERTION]"
+                    FailureKind.NONE -> ""
+                }
+                val status = if (r.passed) "✅ PASS" else "❌ FAIL$kind"
                 val err = r.error?.take(60) ?: "-"
                 sb.appendLine("| ${r.name} | $status | ${r.durationMs}ms | $err |")
             }

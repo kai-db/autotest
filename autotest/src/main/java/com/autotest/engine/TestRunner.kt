@@ -61,24 +61,30 @@ class TestRunner(
         val collector = ReportCollector()
         val startTime = System.currentTimeMillis()
         var error: Throwable? = null
+        // 归类 primary failure 来源（Q7）：envReset/before=INFRA（环境没准备好），Scenario 步骤=ASSERTION（用例真失败）
+        var failureKind = FailureKind.NONE
 
         try {
             // 铁律6：强制环境重置（每条用例独立）
             envReset?.let {
+                failureKind = FailureKind.INFRA
                 logger.d("TestRunner", "重置环境...")
                 it()
             }
 
             // 额外前置操作
             before?.let {
+                failureKind = FailureKind.INFRA
                 logger.d("TestRunner", "执行前置操作...")
                 interceptors.intercept("before:$name") { it() }
             }
 
             // 执行步骤
+            failureKind = FailureKind.ASSERTION
             val s = scenario(name, collector, interceptors, steps)
             s.run()
 
+            failureKind = FailureKind.NONE // 全部成功
             lifecycle.fireAfterTestSuccess(name)
         } catch (e: InterruptedException) {
             // 协作取消/超时中断：恢复中断位并向上传播（finally 仍会跑清理与 fireAfterTestFinally），
@@ -114,7 +120,8 @@ class TestRunner(
             passed = passed,
             durationMs = duration,
             error = error?.message,
-            steps = collector.buildReport(appPackage).steps
+            steps = collector.buildReport(appPackage).steps,
+            failureKind = if (passed) FailureKind.NONE else failureKind
         )
         results.add(result)
         return result
@@ -196,10 +203,15 @@ class TestRunner(
     }
 }
 
+/** 失败类型（Q7）：区分「环境/设备没准备好」与「用例真断言失败」，报告一眼可分 */
+enum class FailureKind { NONE, INFRA, ASSERTION }
+
 data class TestCaseResult(
     val name: String,
     val passed: Boolean,
     val durationMs: Long,
     val error: String? = null,
-    val steps: List<StepResult> = emptyList()
+    val steps: List<StepResult> = emptyList(),
+    /** 仅 FAIL 时有意义：INFRA=envReset/before 抛（环境）；ASSERTION=步骤抛（用例）；NONE=未失败 */
+    val failureKind: FailureKind = FailureKind.NONE
 )

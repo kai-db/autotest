@@ -1,9 +1,36 @@
 package com.autotest.device
 
 import android.content.Context
+import android.os.Build
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.autotest.log.TestLogger
+
+/**
+ * 校验拼入 shell 命令的参数（包名/权限名）仅含安全字符，防止命令注入。
+ * 输入通常来自 TestConfig（测试者自填），此处为防御性加固。
+ * 提为顶层 internal 便于 JVM 单测（安全关键纯逻辑，Q1）。
+ */
+internal fun requireSafeArg(value: String): String {
+    require(value.matches(SAFE_ARG_REGEX)) {
+        "非法参数（仅允许字母/数字/点/下划线）: $value"
+    }
+    return value
+}
+
+/**
+ * 校验 logcat tag：允许单 tag（`^[A-Za-z0-9_.]+$`）或受控 `Tag:Priority`（Priority∈V/D/I/W/E/F/S）。
+ * 禁止首字符 `-`（防 `-v` 等 option-like 注入）、`*`（filter-spec 通配）、空格及 shell 元字符（Q5）。
+ */
+internal fun requireSafeTag(tag: String): String {
+    require(tag.matches(SAFE_TAG_REGEX)) {
+        "非法 logcat tag（仅允许单 tag 或 Tag:Priority，禁止 - 开头/*/空格/shell 元字符）: $tag"
+    }
+    return tag
+}
+
+private val SAFE_ARG_REGEX = Regex("^[a-zA-Z0-9._]+$")
+private val SAFE_TAG_REGEX = Regex("^[A-Za-z0-9_.]+(:[VDIWEFS])?$")
 
 /**
  * 设备操作封装。
@@ -15,17 +42,6 @@ class DeviceActions(
     private val context: Context,
     private val logger: TestLogger? = null
 ) {
-
-    /**
-     * 校验拼入 shell 命令的参数（包名/权限名）仅含安全字符，防止命令注入。
-     * 输入通常来自 TestConfig（测试者自填），此处为防御性加固。
-     */
-    private fun requireSafeArg(value: String): String {
-        require(value.matches(Regex("^[a-zA-Z0-9._]+$"))) {
-            "非法参数（仅允许字母/数字/点/下划线）: $value"
-        }
-        return value
-    }
 
     // ==================== 网络控制 ====================
 
@@ -45,14 +61,31 @@ class DeviceActions(
         device.executeShellCommand("svc data disable")
     }
 
-    fun enableAirplaneMode() {
-        device.executeShellCommand("settings put global airplane_mode_on 1")
-        device.executeShellCommand("am broadcast -a android.intent.action.AIRPLANE_MODE")
-    }
+    /**
+     * 开飞行模式。API≥28 用 `cmd connectivity airplane-mode`（可靠）；24–27 回退 `settings put + 保护广播`
+     * （26/27 广播可能被系统拒，无线电不实际切换）。**执行后读回校验，未生效返回 false 并告警（不静默 no-op，Q5）。**
+     * @return true=已生效
+     */
+    fun enableAirplaneMode(): Boolean = setAirplaneMode(true)
 
-    fun disableAirplaneMode() {
-        device.executeShellCommand("settings put global airplane_mode_on 0")
-        device.executeShellCommand("am broadcast -a android.intent.action.AIRPLANE_MODE")
+    /** 关飞行模式，语义同 [enableAirplaneMode]。@return true=已生效 */
+    fun disableAirplaneMode(): Boolean = setAirplaneMode(false)
+
+    private fun setAirplaneMode(on: Boolean): Boolean {
+        val want = if (on) "1" else "0"
+        if (Build.VERSION.SDK_INT >= 28) {
+            device.executeShellCommand("cmd connectivity airplane-mode ${if (on) "enable" else "disable"}")
+        } else {
+            device.executeShellCommand("settings put global airplane_mode_on $want")
+            device.executeShellCommand("am broadcast -a android.intent.action.AIRPLANE_MODE")
+        }
+        // 读回校验：不接受静默 no-op
+        val actual = device.executeShellCommand("settings get global airplane_mode_on").trim()
+        val ok = actual == want
+        if (!ok) {
+            logger?.w("Device", "飞行模式切换未生效（期望 $want，实际 '$actual'，SDK ${Build.VERSION.SDK_INT}）；可能被 ROM/权限拒绝")
+        }
+        return ok
     }
 
     // ==================== App 管理 ====================
@@ -179,7 +212,7 @@ class DeviceActions(
     }
 
     fun dumpLogcat(tag: String? = null, lines: Int = 200): String {
-        val tagFilter = tag?.let { "-s $it" } ?: ""
+        val tagFilter = tag?.let { "-s ${requireSafeTag(it)}" } ?: ""  // tag 过校验，与同类方法一致（Q5）
         return device.executeShellCommand("logcat -d -t $lines $tagFilter")
     }
 

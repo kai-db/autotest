@@ -2,6 +2,33 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.8.0] - 2026-07-02
+
+> 主题：质量 / 可测性收尾（审计 P2 + 延后项）。minor 版号——含 public API 演进。
+
+### Added
+- `verifyNoProtobufLite` gradle 护栏（1.7.2 引入，本版沿用）；`requireSafeArg`/`requireSafeTag` 提为可测顶层函数
+- 补测：device 包 shell 注入防护（RequireSafeArg）、log 包首个单测（DefaultTestLogger 分级/格式/并发）、
+  TestRunner FailureKind 归类矩阵、MonitorMode 失败行 [INFRA]/[ASSERTION] 展示（单测 280 → 295）
+
+### Fixed / Hardened
+- **DefaultTestLogger 线程安全**：SimpleDateFormat 改 ThreadLocal（匿名子类 override initialValue，兼容 minSdk24；
+  非 `withInitial` 那个 API26+）+ 写文件段 synchronized
+- **DeviceActions 加固**：`dumpLogcat(tag)` 过 requireSafeTag（防 `-v`/`*:S`/元字符注入）；
+  airplane mode API≥28 用 `cmd connectivity`、24–27 回退，执行后读回校验、未生效告警（不再静默 no-op）
+- **LogcatInterceptor `logcat -c` 收敛（D3）**：仅在本步需收集日志时才清全局缓冲，不再抹掉步骤前 crash 痕迹
+- **TestRunner 失败类型区分**：FailureKind（INFRA=环境/设备没准备好，ASSERTION=用例真断言失败），进 MonitorMode 报告
+
+### Changed（破坏性 / API 演进，接入方注意）
+- `DeviceActions.enableAirplaneMode/disableAirplaneMode`：`Unit → Boolean`（返回是否生效）——JVM 描述符变更，
+  源码兼容（返回值可忽略）、ABI 破坏（预编译二进制需重编）
+- `TestCaseResult` 加 `failureKind` 字段（带默认值）——源码兼容、data class 主构造器 ABI 变更
+- **删除 `DeviceSelector.DevicePreference`**（死代码，零引用）——若外部曾引用需移除
+- 说明：唯一接入方 debox 是源码级 androidTestImplementation、重编即可，不受上述 ABI 变更影响
+
+### Stats
+- 295 条单元测试 / 19 个模块
+
 ## [1.7.2] - 2026-07-02
 
 > 主题：debox 1.7.1 接入回归暴露 A2（protobuf-lite exclude）根治不完整，补全 + 加护栏。
