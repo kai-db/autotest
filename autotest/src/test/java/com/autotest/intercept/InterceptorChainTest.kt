@@ -79,16 +79,17 @@ class InterceptorChainTest {
         val log = mutableListOf<String>()
         val chain = InterceptorChain()
         chain.add(object : Interceptor {
-            override fun beforeStep(stepNumber: String, stepName: String) {
-                log.add("before:$stepNumber:$stepName")
+            override fun beforeStep(ctx: StepContext) {
+                log.add("before:${ctx.stepNumber}:${ctx.stepName}")
             }
-            override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {
-                log.add("after:$stepNumber")
+            override fun afterStep(ctx: StepContext, durationMs: Long) {
+                log.add("after:${ctx.stepNumber}")
             }
         })
 
-        chain.fireBeforeStep("1", "启动App")
-        chain.fireAfterStep("1", "启动App", 100)
+        val ctx = StepContext(caseId = "c", stepNumber = "1", stepName = "启动App", runId = "r0")
+        chain.fireBeforeStep(ctx)
+        chain.fireAfterStep(ctx, 100)
 
         assertEquals(listOf("before:1:启动App", "after:1"), log)
     }

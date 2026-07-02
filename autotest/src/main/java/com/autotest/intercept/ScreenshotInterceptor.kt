@@ -38,20 +38,21 @@ class ScreenshotInterceptor(
     var lastScreenshotPath: String? = null
         private set
 
-    /** 所有截图路径，key = stepNumber */
+    /** 所有截图路径，key = StepContext.evidenceKey（跨用例/多轮/attempt 唯一，不覆盖） */
     private val screenshotMap = mutableMapOf<String, String>()
 
-    override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {
+    override fun afterStep(ctx: StepContext, durationMs: Long) {
         if (screenshotOnSuccess) {
-            val path = take("step_${stepNumber}_pass")
-            path?.let { screenshotMap[stepNumber] = it }
+            // 文件名带 fileSafeKey：同秒/同 stepNumber/多 case 不会覆盖底层文件（P0-8）
+            val path = take("step_${ctx.fileSafeKey}_pass")
+            path?.let { screenshotMap[ctx.evidenceKey] = it }
         }
     }
 
-    override fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {
+    override fun onStepFailure(ctx: StepContext, error: Throwable) {
         if (screenshotOnFailure) {
-            val path = take("step_${stepNumber}_fail")
-            path?.let { screenshotMap[stepNumber] = it }
+            val path = take("step_${ctx.fileSafeKey}_fail")
+            path?.let { screenshotMap[ctx.evidenceKey] = it }
         }
     }
 
@@ -61,7 +62,7 @@ class ScreenshotInterceptor(
         }
     }
 
-    fun getScreenshotPath(stepNumber: String): String? = screenshotMap[stepNumber]
+    fun getScreenshotPath(ctx: StepContext): String? = screenshotMap[ctx.evidenceKey]
 
     fun getAllScreenshots(): Map<String, String> = screenshotMap.toMap()
 

@@ -77,6 +77,20 @@ object HtmlReporter {
             </tr>"""
         }
 
+        val guardHtml = report.guardEvents.joinToString("\n") { g ->
+            val badgeClass = when (g.type) {
+                com.autotest.safety.GuardEventType.DANGEROUS_BLOCKED,
+                com.autotest.safety.GuardEventType.UNVERIFIABLE_BLOCKED -> "fail"
+                else -> "warn"
+            }
+            """<tr>
+                <td><span class="badge $badgeClass">${g.type.name}</span></td>
+                <td>${escapeHtml(g.target)}</td>
+                <td>${g.matchedWord?.let { escapeHtml(it) } ?: "-"}</td>
+                <td>${g.screenshotPath?.let { "📷 " + escapeHtml(it.substringAfterLast('/')) } ?: "-"}</td>
+            </tr>"""
+        }
+
         val deviceInfo = report.runnerInfo?.let {
             "${it.deviceManufacturer} ${it.deviceModel} (Android ${it.androidVersion}, SDK ${it.sdkVersion})"
         } ?: report.device ?: "Unknown"
@@ -174,6 +188,15 @@ ${if (report.healingEvents.isNotEmpty()) """
 <table>
 <tr><th>选择器</th><th>降级层级</th><th>实际命中</th><th>置信度</th></tr>
 $healingHtml
+</table>
+""" else ""}
+
+${if (report.guardEvents.isNotEmpty()) """
+<h2>危险操作拦截</h2>
+<p class="section-note">危险操作点击守卫（铁律#7）事件——BLOCKED = 已拦截并 FAIL；ALLOWED = 显式放行留痕；GUARD_DISABLED = 守卫被关闭（审计）</p>
+<table>
+<tr><th>类型</th><th>点击目标</th><th>命中词</th><th>截图</th></tr>
+$guardHtml
 </table>
 """ else ""}
 

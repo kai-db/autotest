@@ -6,7 +6,7 @@ plugins {
 
 def LIB_GROUP = "com.autotest"
 def LIB_ARTIFACT = "autotest"
-def LIB_VERSION = "1.6.0"
+def LIB_VERSION = "1.7.1"
 
 android {
     compileSdk 35
@@ -14,12 +14,22 @@ android {
 
     defaultConfig {
         minSdk 24
+        // 库 AAR 本身不写死 targetSdk，但缺省会让 androidTest APK 取 targetSdk=minSdk=24，
+        // 触发系统 DeprecatedTargetSdkVersionDialog 抢焦点、拖垮 instrumented 测试；显式对齐 compileSdk。
+        targetSdk 35
         buildConfigField "String", "LIB_VERSION", "\"$LIB_VERSION\""
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
         buildConfig true
+    }
+
+    // 发布 release variant 时带上 sources jar：接入方 IDE 能看到源码 + 中文 KDoc（A4）
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
     }
 
     compileOptions {
@@ -46,7 +56,14 @@ dependencies {
     api "androidx.test:rules:1.5.0"
     api "androidx.test:core:1.5.0"
     api "androidx.test:core-ktx:1.5.0"
-    api "androidx.test.espresso:espresso-core:3.5.1"
+    // 公开 API（EspressoExt/WaitUtil）暴露 org.hamcrest.Matcher，按 Gradle 语义必须自己 api 声明，
+    // 否则接入方 exclude/降级 espresso 时 NoClassDefFoundError（G3-hamcrest 教训，框架侧根治）
+    api "org.hamcrest:hamcrest:2.2"
+    // espresso-core 传递带入的旧 protobuf-lite 会与宿主 App 的 protobuf-javalite 冲突（G3-①）；
+    // 在此 exclude 会写进发布 POM 的 <exclusions>，一处根治所有接入方，无需各自排
+    api("androidx.test.espresso:espresso-core:3.5.1") {
+        exclude group: 'com.google.protobuf', module: 'protobuf-lite'
+    }
     api "androidx.test.uiautomator:uiautomator:2.3.0"
 
     implementation "com.google.code.gson:gson:2.10.1"

@@ -62,9 +62,10 @@ class ScenarioTest {
     fun flakyStep_retriesOnFailure() {
         var attempts = 0
         val s = scenario("flaky") {
+            // D1：flakyStep 只重试 FLAKY 分类的失败；用时序类文案（"timeout"）触发重试
             flakyStep("retry-me", maxRetries = 2, intervalMs = 0) {
                 attempts++
-                if (attempts < 3) throw RuntimeException("not yet")
+                if (attempts < 3) throw AssertionError("timeout waiting for element")
             }
         }
         s.run()

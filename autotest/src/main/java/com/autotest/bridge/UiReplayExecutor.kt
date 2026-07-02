@@ -22,11 +22,11 @@ class UiReplayExecutor(
         when (step.action) {
             CachedActionType.LAUNCH_APP -> launchApp(step.payload ?: case.appPackage)
             CachedActionType.TERMINATE_APP -> terminateApp(step.payload ?: case.appPackage)
-            CachedActionType.CLICK -> findTarget(step).click()
-            CachedActionType.LONG_CLICK -> findTarget(step).longClick()
-            CachedActionType.INPUT_TEXT -> findTarget(step).text = requireNotNull(step.payload) {
-                "INPUT_TEXT 步骤缺少 payload: ${step.name}"
-            }
+            CachedActionType.CLICK -> findTarget(step).click(step.allowDangerous, step.allowUnverifiable)
+            CachedActionType.LONG_CLICK -> findTarget(step).longClick(step.allowDangerous, step.allowUnverifiable)
+            CachedActionType.INPUT_TEXT -> findTarget(step).setText(
+                requireNotNull(step.payload) { "INPUT_TEXT 步骤缺少 payload: ${step.name}" }
+            )
             CachedActionType.SWIPE_UP -> device.scrollUp()
             CachedActionType.SWIPE_DOWN -> device.scrollDown()
             CachedActionType.PRESS_BACK -> device.pressBack()
@@ -41,12 +41,15 @@ class UiReplayExecutor(
         }
     }
 
-    private fun findTarget(step: CachedStep) = run {
+    private fun findTarget(step: CachedStep): com.autotest.selector.GuardedElement {
         val target = requireNotNull(step.target) { "${step.action} 步骤缺少 target: ${step.name}" }
+        // 缓存 target 三属性全空（== ClickTarget.isUnverifiable）时无法产生选择器、根本定位不到元素，
+        // 快速失败即 fail-closed（比守卫更早的一道闸）：回放不支持无定位属性的 target。
+        // step.allowUnverifiable 作用于「已定位到、但实时快照不可审计」的元素——由 GuardedElement.click 在点击时判定。
         val spec = requireNotNull(target.toSelectorSpec()) {
-            "target 无可用定位属性（res-id/desc/text 均为空）: ${step.name}"
+            "target 无可用定位属性（res-id/desc/text 均为空），无法回放定位: ${step.name}"
         }
-        locator.find(spec, step.timeoutMs)
+        return locator.element(spec, step.timeoutMs)
     }
 
     private fun launchApp(packageName: String) {

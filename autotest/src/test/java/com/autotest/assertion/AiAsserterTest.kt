@@ -23,12 +23,24 @@ class AiAsserterTest {
     }
 
     @Test
-    fun `无评估器时记 SKIPPED 不抛错（CI 确定性执行）`() {
+    fun `无评估器时软断言记 SKIPPED 不抛错（CI 确定性执行）`() {
         AiAsserter(evaluator = null, collector = collector).assertWithAi("页面应显示余额")
 
         val a = recorded().single()
         assertEquals(AiVerdict.SKIPPED, a.verdict)
         assertTrue(a.explanation.contains("未注入"))
+    }
+
+    @Test
+    fun `无评估器时硬断言抛错且先记 SKIPPED（硬断言不允许静默降级，P0-5）`() {
+        try {
+            AiAsserter(evaluator = null, collector = collector)
+                .assertWithAi("页面应显示余额", optional = false)
+            fail("硬断言在无评估器时应抛 AssertionError，不允许静默通过")
+        } catch (e: AssertionError) {
+            assertTrue(e.message!!.contains("不允许静默降级"))
+        }
+        assertEquals(AiVerdict.SKIPPED, recorded().single().verdict) // 抛错前先留痕
     }
 
     @Test

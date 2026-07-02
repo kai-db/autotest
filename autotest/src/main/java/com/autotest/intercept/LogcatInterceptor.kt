@@ -28,10 +28,12 @@ class LogcatInterceptor(
     }
 
     private val dateFormat = SimpleDateFormat("HHmmss", Locale.getDefault())
+    /** key = StepContext.evidenceKey（跨用例/多轮/attempt 唯一，不覆盖） */
     private val logcatFiles = mutableMapOf<String, String>()
 
-    override fun beforeStep(stepNumber: String, stepName: String) {
+    override fun beforeStep(ctx: StepContext) {
         // 每个步骤开始前清空 logcat，只收集本步骤的日志
+        // （logcat -c 抹掉步骤前 crash 痕迹的问题属审计 D3，留后续批次处理，本批仅改 key 隔离）
         try {
             device.executeShellCommand("logcat -c")
         } catch (e: Throwable) {
@@ -39,23 +41,24 @@ class LogcatInterceptor(
         }
     }
 
-    override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {
+    override fun afterStep(ctx: StepContext, durationMs: Long) {
         if (collectOnSuccess) {
-            dump("step_${stepNumber}_pass", stepNumber)
+            // 文件名带 fileSafeKey：同秒/同 stepNumber/多 case 不会覆盖底层文件（P0-8）
+            dump("step_${ctx.fileSafeKey}_pass", ctx.evidenceKey)
         }
     }
 
-    override fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {
+    override fun onStepFailure(ctx: StepContext, error: Throwable) {
         if (collectOnFailure) {
-            dump("step_${stepNumber}_fail", stepNumber)
+            dump("step_${ctx.fileSafeKey}_fail", ctx.evidenceKey)
         }
     }
 
-    fun getLogcatPath(stepNumber: String): String? = logcatFiles[stepNumber]
+    fun getLogcatPath(ctx: StepContext): String? = logcatFiles[ctx.evidenceKey]
 
     fun getAllLogcats(): Map<String, String> = logcatFiles.toMap()
 
-    private fun dump(name: String, stepNumber: String) {
+    private fun dump(name: String, evidenceKey: String) {
         try {
             val dir = File(TestConfig.screenshotDir, "logcat")
             dir.mkdirs()
@@ -65,7 +68,7 @@ class LogcatInterceptor(
             val logcat = device.executeShellCommand("logcat -d -t $logLines")
             file.writeText(logcat)
 
-            logcatFiles[stepNumber] = file.absolutePath
+            logcatFiles[evidenceKey] = file.absolutePath
             logger.d("Logcat", "日志已收集: ${file.absolutePath}")
         } catch (e: Throwable) {
             logger.e("Logcat", "日志收集失败: ${e.message}")

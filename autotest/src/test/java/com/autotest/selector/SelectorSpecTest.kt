@@ -63,13 +63,22 @@ class SelectorSpecTest {
         val a = (byText("登录") or byDesc("login")).key()
         val b = (byText("登录") or byDesc("login")).key()
         assertEquals(a, b)
-        assertEquals("or(text:exact:登录,desc:exact:login)", a)
+        // 长度前缀编码（C4）：value 前带长度，防含分隔符的 value 碰撞
+        assertEquals("or(text:exact:2:登录,desc:exact:5:login)", a)
     }
 
     @Test
     fun `不同写法产生不同键`() {
         assertTrue(byText("登录").key() != byTextContains("登录").key())
         assertTrue(byText("登录").key() != byDesc("登录").key())
+    }
+
+    @Test
+    fun `含分隔符的 value 不与其它写法碰撞（C4 长度前缀）`() {
+        // 裸拼时 Leaf("a,text:exact:b") 可能与 Or(Leaf("a"),Leaf("b")) 撞键；长度前缀消除碰撞
+        val tricky = byText("a,text:exact:b").key()
+        val twoLeaves = (byText("a") or byText("b")).key()
+        assertTrue(tricky != twoLeaves)
     }
 
     @Test

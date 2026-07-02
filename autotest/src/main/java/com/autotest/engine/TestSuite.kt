@@ -58,6 +58,26 @@ class TestSuite(
                 "P1" -> Priority.P1
                 else -> Priority.P2
             }
+            if (tc.unmatchedBullets > 0) {
+                logger.w(
+                    "TestSuite",
+                    "用例 ${tc.id} 有 ${tc.unmatchedBullets} 行 bullet 未被解析（仅支持「- 步骤：/- 验证：」），可能格式漂移"
+                )
+            }
+            // 零步骤用例注册为必 FAIL（P0-3）：解析失败静默变空场景会「假 PASS」——
+            // TEST_CASES.md 是唯一用例来源（铁律2），格式漂移必须显式暴露而非跳过
+            if (tc.steps.isEmpty() && tc.verifications.isEmpty()) {
+                logger.w("TestSuite", "用例 ${tc.id} 解析为空（0 步骤 0 验证），注册为必 FAIL 用例")
+                addTest(tc.id, tc.name, priority) {
+                    step("用例解析为空") {
+                        throw AssertionError(
+                            "用例 ${tc.id} 从 Markdown 解析出 0 步骤 0 验证——" +
+                                "可能是格式漂移（仅支持「- 步骤：/- 验证：」bullet），拒绝按空场景假 PASS"
+                        )
+                    }
+                }
+                continue
+            }
             val capturedSteps = tc.steps
             val capturedVerifications = tc.verifications
             val capturedId = tc.id
@@ -78,15 +98,22 @@ class TestSuite(
     /**
      * 按优先级 P0→P1→P2 全量执行所有用例。
      * 铁律7：只有全量执行，没有部分执行。
+     *
+     * @param shouldStop 协作式取消检查点：每条用例执行**前**求值，返回 true 则停止后续用例
+     *   （已跑结果照常返回）。用于超时取消，避免僵尸线程跑完全部剩余用例（P0-6）。
      */
-    fun runAll(): List<TestCaseResult> {
+    fun runAll(shouldStop: () -> Boolean = { false }): List<TestCaseResult> {
         logger.i("TestSuite", "══════ 开始测试套件: $name（${tests.size} 条用例）══════")
 
         runner.reset()
         val sorted = tests.sortedBy { it.priority }
         val results = mutableListOf<TestCaseResult>()
 
-        sorted.forEachIndexed { index, test ->
+        for ((index, test) in sorted.withIndex()) {
+            if (shouldStop()) {
+                logger.w("TestSuite", "收到取消信号，停止后续用例（已跑 ${results.size}/${sorted.size}）")
+                break
+            }
             logger.i("TestSuite", "进度: ${index + 1}/${sorted.size} [${test.priority}] ${test.id} ${test.name}")
             val result = runner.runTest(
                 name = "${test.id} ${test.name}",

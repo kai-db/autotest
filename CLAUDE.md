@@ -10,7 +10,7 @@ com.autotest
 ├── action/        AppActions（通用操作：Tab 切换、引导页跳过）
 ├── assertion/     AppAssertions + AiAsserter（AI 软断言，评估器外部注入）
 ├── bridge/        固化桥：CachedCase 用例缓存 + CaseCacheStore + CacheReplay 回放
-├── config/        分层配置 + Environment（多环境管理）
+├── config/        分层配置（global<app<env<cli）+ Environment（多环境，显式 applyTo 打通 env 层）
 ├── data/          TestDataManager + TestAccount（测试数据管理）
 ├── device/        DeviceActions（网络/权限/屏幕/App管理/Logcat）
 ├── diagnosis/     LogcatAnalyzer（失败根因：crash/ANR/OOM 签名）
@@ -40,10 +40,11 @@ com.autotest
 1. **AI 驱动** — 全程自主执行，不等人指示每一步
 2. **按用例执行** — `docs/testing/TEST_CASES.md` 是唯一用例来源
 3. **监工模式** — 使用 `/loop 5m` 定时检查测试执行状态，防止 AI 卡住
-4. **最小人工介入** — 尽量减少人为操控，除验证码等必须环节外全部 AI 自主完成
+4. **最小人工介入** — 人工只允许白名单五项（验证码/真机首次解锁/危险操作确认/外部系统修复/secret 注入，见 `TEST_GUIDE.md` §7.6），其余全部 AI 自主完成
 5. **修复走 agent-dev-loop** — 分析问题/修复代码**不直接改**，必须走 `agent-dev-loop` skill（Claude 计划/实现/修复/记录 + Codex 只读独立 review 闭环）：建 `docs/implementation/YYYY-MM-DD-动词-对象/` 任务目录 → plan → Codex plan review → 实现 → Codex 实现 review → 回写 results.md。修复原则见 `TEST_GUIDE.md` 第四节，闭环步骤见第六节
 6. **先读知识库** — AI 测试 session 先读 `docs/testing/app-knowledge/`（元素表/弹窗/**危险操作清单**），探索产物回写
 7. **危险操作 pre-action 比对** — 点击前比对 `app-knowledge/dangerous-ops.md`，命中先停（钱包 App 误操作不可逆）；禁止清数据/登出/切环境
+8. **模拟器优先** — 设备按阶梯路由：L1 普通模拟器（默认）→ L2 root 模拟器（注入）→ L3 真机（复核），取最低可行层级；真机不在线不阻塞（详见 `TEST_GUIDE.md` 第七节 + `app-knowledge/devices.md`）
 
 ## 测试目标
 

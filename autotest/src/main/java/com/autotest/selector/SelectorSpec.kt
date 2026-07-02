@@ -57,9 +57,14 @@ sealed class SelectorSpec {
         }
     }
 
-    /** 规范化键：指纹库与用例缓存的索引 */
+    /**
+     * 规范化键：指纹库与用例缓存的索引。
+     *
+     * value 用**长度前缀编码**（`<len>:<value>`）而非裸拼——value 含 `,`/`(`/`)` 时裸拼会让不同写法
+     * 产生同键、指纹/缓存索引互相污染（C4）；长度前缀让「同一写法必产生同键、不同写法必产生不同键」。
+     */
     fun key(): String = when (this) {
-        is Leaf -> "${attr.name.lowercase()}:${mode.name.lowercase()}:$value"
+        is Leaf -> "${attr.name.lowercase()}:${mode.name.lowercase()}:${value.length}:$value"
         is Not -> "not(${leaf.key()})"
         is And -> "and(${children.joinToString(",") { it.key() }})"
         is Or -> "or(${children.joinToString(",") { it.key() }})"

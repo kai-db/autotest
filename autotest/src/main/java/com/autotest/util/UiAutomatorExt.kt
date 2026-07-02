@@ -3,6 +3,8 @@ package com.autotest.util
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import com.autotest.safety.GuardRegistry
+import com.autotest.safety.toClickTarget
 
 /** 等待某个文本出现 */
 fun UiDevice.waitForText(text: String, timeout: Long = 5000): Boolean {
@@ -14,28 +16,31 @@ fun UiDevice.waitForResId(resId: String, timeout: Long = 5000): Boolean {
     return wait(Until.hasObject(By.res(resId)), timeout)
 }
 
-/** 点击包含指定文本的元素。找不到时抛异常。 */
-fun UiDevice.clickText(text: String) {
+/** 点击包含指定文本的元素（过危险操作守卫）。找不到时抛异常。 */
+fun UiDevice.clickText(text: String, allowDangerous: Boolean = false, allowUnverifiable: Boolean = false) {
     val obj = findObject(By.textContains(text))
         ?: throw AssertionError("找不到包含文本 \"$text\" 的元素")
+    GuardRegistry.current?.checkClick(obj.toClickTarget(), allowDangerous, allowUnverifiable)
     obj.click()
 }
 
-/** 点击指定 resource-id 的元素。找不到时抛异常。 */
-fun UiDevice.clickResId(resId: String) {
+/** 点击指定 resource-id 的元素（过危险操作守卫）。找不到时抛异常。 */
+fun UiDevice.clickResId(resId: String, allowDangerous: Boolean = false, allowUnverifiable: Boolean = false) {
     val obj = findObject(By.res(resId))
         ?: throw AssertionError("找不到 resource-id \"$resId\" 的元素")
+    GuardRegistry.current?.checkClick(obj.toClickTarget(), allowDangerous, allowUnverifiable)
     obj.click()
 }
 
-/** 尝试点击文本，找不到则忽略（用于弹窗等可选操作）。 */
-fun UiDevice.tryClickText(text: String): Boolean {
+/** 尝试点击文本（过危险操作守卫），找不到则忽略（用于弹窗等可选操作）。 */
+fun UiDevice.tryClickText(text: String, allowDangerous: Boolean = false, allowUnverifiable: Boolean = false): Boolean {
     val obj = findObject(By.textContains(text)) ?: return false
+    GuardRegistry.current?.checkClick(obj.toClickTarget(), allowDangerous, allowUnverifiable)
     obj.click()
     return true
 }
 
-/** 处理系统权限弹窗——点击「允许」 */
+/** 处理系统权限弹窗——点击「允许」（同样过守卫，保持「全部点击入口有守卫」不变量） */
 fun UiDevice.allowPermission() {
     val allowButtons = listOf(
         "com.android.permissioncontroller:id/permission_allow_button",
@@ -43,24 +48,27 @@ fun UiDevice.allowPermission() {
         "com.android.packageinstaller:id/permission_allow_button"
     )
     for (btn in allowButtons) {
-        findObject(By.res(btn))?.let { it.click(); return }
+        findObject(By.res(btn))?.let { guardedClick(it); return }
     }
     // 兜底
-    findObject(By.textContains("允许"))?.click()
-        ?: findObject(By.textContains("Allow"))?.click()
+    (findObject(By.textContains("允许")) ?: findObject(By.textContains("Allow")))?.let { guardedClick(it) }
 }
 
-/** 处理系统权限弹窗——点击「拒绝」 */
+/** 处理系统权限弹窗——点击「拒绝」（过守卫） */
 fun UiDevice.denyPermission() {
     val denyButtons = listOf(
         "com.android.permissioncontroller:id/permission_deny_button",
         "com.android.packageinstaller:id/permission_deny_button"
     )
     for (btn in denyButtons) {
-        findObject(By.res(btn))?.let { it.click(); return }
+        findObject(By.res(btn))?.let { guardedClick(it); return }
     }
-    findObject(By.textContains("拒绝"))?.click()
-        ?: findObject(By.textContains("Deny"))?.click()
+    (findObject(By.textContains("拒绝")) ?: findObject(By.textContains("Deny")))?.let { guardedClick(it) }
+}
+
+private fun guardedClick(obj: androidx.test.uiautomator.UiObject2) {
+    GuardRegistry.current?.checkClick(obj.toClickTarget())
+    obj.click()
 }
 
 /** 等待 App 包名出现在前台 */

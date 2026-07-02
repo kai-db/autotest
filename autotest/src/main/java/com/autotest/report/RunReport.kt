@@ -14,7 +14,9 @@ data class RunReport(
     /** AI 自然语言断言结果（独立通道，与确定性断言分开统计） */
     val aiAssertions: List<AiAssertion> = emptyList(),
     /** 定位自愈/AI 兜底命中事件（需人工确认是否为 UI 回归并回填选择器） */
-    val healingEvents: List<com.autotest.selector.LocatorEvent> = emptyList()
+    val healingEvents: List<com.autotest.selector.LocatorEvent> = emptyList(),
+    /** 危险操作守卫事件（阻断/放行/禁用，铁律#7 审计留痕） */
+    val guardEvents: List<com.autotest.safety.GuardEvent> = emptyList()
 )
 
 data class ReportSummary(

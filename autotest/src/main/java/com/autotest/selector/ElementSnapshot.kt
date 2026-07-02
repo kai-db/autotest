@@ -28,6 +28,16 @@ data class ElementSnapshot(
         bounds.ifEmpty { null }?.let { "bounds=$it" }
     ).joinToString(", ").ifEmpty { "(空元素)" }
 
+    /**
+     * 结构完整性校验：6 个 String 字段均非 null。
+     * Gson Unsafe 反序列化可给声明为非空的字段注入 null（`{}` 缺字段），这里显式挡住，
+     * 只让结构完整的数据进内存索引（B1）。
+     */
+    @Suppress("SENSELESS_COMPARISON")
+    fun isStructurallyValid(): Boolean =
+        text != null && resourceId != null && contentDesc != null &&
+            className != null && packageName != null && bounds != null
+
     companion object {
         private val BOUNDS_REGEX = Regex("""\[(-?\d+),(-?\d+)]\[(-?\d+),(-?\d+)]""")
 

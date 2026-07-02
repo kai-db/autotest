@@ -9,7 +9,10 @@ enum class LocatorLevel {
     HEALED,
 
     /** 第三级：自愈也失败，AI 兜底定位命中（必须上报） */
-    AI_FALLBACK
+    AI_FALLBACK,
+
+    /** 快照回查多命中且无法唯一消歧（fail-closed 不点击，上报人审，C5） */
+    AMBIGUOUS
 }
 
 /**

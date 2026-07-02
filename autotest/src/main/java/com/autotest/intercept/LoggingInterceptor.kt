@@ -20,15 +20,15 @@ class LoggingInterceptor(private val logger: TestLogger) : Interceptor {
         logger.e("Action", "✗ $actionName: ${error.message}", error)
     }
 
-    override fun beforeStep(stepNumber: String, stepName: String) {
-        logger.i("Step", "[$stepNumber] $stepName")
+    override fun beforeStep(ctx: StepContext) {
+        logger.i("Step", "[${ctx.stepNumber}] ${ctx.stepName}")
     }
 
-    override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {
-        logger.i("Step", "[$stepNumber] ✓ $stepName (${durationMs}ms)")
+    override fun afterStep(ctx: StepContext, durationMs: Long) {
+        logger.i("Step", "[${ctx.stepNumber}] ✓ ${ctx.stepName} (${durationMs}ms)")
     }
 
-    override fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {
-        logger.e("Step", "[$stepNumber] ✗ $stepName: ${error.message}")
+    override fun onStepFailure(ctx: StepContext, error: Throwable) {
+        logger.e("Step", "[${ctx.stepNumber}] ✗ ${ctx.stepName}: ${error.message}")
     }
 }

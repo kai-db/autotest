@@ -17,12 +17,12 @@ interface Interceptor {
     /** 操作执行失败时调用 */
     fun onActionFailure(actionName: String, error: Throwable) {}
 
-    /** 测试步骤开始前调用 */
-    fun beforeStep(stepNumber: String, stepName: String) {}
+    /** 测试步骤开始前调用（[ctx] 携带 caseId/runId/attempt，用于证据与统计隔离） */
+    fun beforeStep(ctx: StepContext) {}
 
     /** 测试步骤成功后调用 */
-    fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {}
+    fun afterStep(ctx: StepContext, durationMs: Long) {}
 
     /** 测试步骤失败时调用 */
-    fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {}
+    fun onStepFailure(ctx: StepContext, error: Throwable) {}
 }

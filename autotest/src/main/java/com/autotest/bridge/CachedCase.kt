@@ -51,7 +51,11 @@ data class CachedStep(
     val action: CachedActionType,
     val target: ElementSnapshot? = null,
     val payload: String? = null,
-    val timeoutMs: Long = 5000
+    val timeoutMs: Long = 5000,
+    /** CLICK/LONG_CLICK 命中危险操作词表时的显式放行（用例明确要求执行才置 true，缺省拦截） */
+    val allowDangerous: Boolean = false,
+    /** 目标快照无 text/res-id/desc 时的显式放行（守卫 fail-closed，缺省拦截） */
+    val allowUnverifiable: Boolean = false
 )
 
 /**
@@ -72,6 +76,42 @@ data class CachedCase(
 ) {
     init {
         require(caseId.isNotBlank()) { "caseId 不能为空" }
-        require(caseId.matches(Regex("""^[A-Za-z0-9._-]+$"""))) { "caseId 仅允许字母数字._-（将作为文件名）: $caseId" }
+        require(caseId.matches(CASE_ID_REGEX)) { "caseId 仅允许字母数字._-（将作为文件名）: $caseId" }
     }
+
+    companion object {
+        val CASE_ID_REGEX = Regex("""^[A-Za-z0-9._-]+$""")
+    }
+}
+
+/**
+ * 反序列化后校验（B1）：Gson Unsafe 实例化绕过 `init{}`，手编 JSON 可让 caseId 逃逸文件名安全约束、
+ * 或给非空字段/steps 注入 null → NPE 炸在远端（CacheReplay.forEach / when(action)）。
+ * 这里显式递归校验，只放结构完整数据进内存。
+ * @return 结构完整返回 null；否则返回第一处问题描述
+ */
+@Suppress("SENSELESS_COMPARISON")
+fun CachedCase.validationError(): String? {
+    if (caseId == null || !caseId.matches(CachedCase.CASE_ID_REGEX)) return "caseId 非法或为空: $caseId"
+    if (steps == null) return "steps 为 null"
+    if (steps.isEmpty()) return "steps 为空（空场景会假 PASS）"
+    steps.forEachIndexed { i, step ->
+        step.validationError()?.let { return "step[$i]: $it" }
+    }
+    return null
+}
+
+@Suppress("SENSELESS_COMPARISON")
+fun CachedStep.validationError(): String? {
+    if (name == null) return "name 为 null"
+    if (action == null) return "action 为 null"
+    target?.let { if (!it.isStructurallyValid()) return "target 快照字段缺失" }
+    when (action) {
+        CachedActionType.INPUT_TEXT, CachedActionType.WAIT_TEXT ->
+            if (payload.isNullOrEmpty()) return "$action 缺少 payload"
+        CachedActionType.CLICK, CachedActionType.LONG_CLICK, CachedActionType.ASSERT_VISIBLE ->
+            if (target == null) return "$action 缺少 target"
+        else -> {}
+    }
+    return null
 }

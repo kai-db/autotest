@@ -44,10 +44,13 @@ fun <T> flakySafely(
         }
     }
 
-    // 最后一次尝试
+    // 最后一次尝试。非白名单异常必须原样上抛（与循环体一致）——
+    // 否则真 bug（如 NPE）会被包装成含「超时」的 AssertionError，被 FlakyClassifier 误判 FLAKY
+    // 进入重试洗白链（P0-2）。
     try {
         return action()
     } catch (e: Throwable) {
+        if (!isAllowed(e, allowedExceptions)) throw e
         val msg = failureMessage ?: "flakySafely 超时 (${timeoutMs}ms)"
         throw AssertionError("$msg: ${lastError?.message ?: e.message}", e)
     }

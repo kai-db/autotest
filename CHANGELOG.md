@@ -2,6 +2,47 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.7.1] - 2026-07-02
+
+> 主题：一次全框架架构审计后的四批加固（每批走 agent-dev-loop + Codex 双 gate）。
+> 审计与四批任务记录见 `docs/implementation/2026-07-02-*`。
+
+### Added
+- **safety 包（新增，铁律#7 代码层）**：DangerousOpsGuard 危险操作点击网关——
+  框架全部点击入口（自愈定位/UiAutomator/Espresso/缓存回放/弹窗拦截器）统一比对危险词表，
+  命中或不可审计目标默认 fail-closed 拦截 + 截图留证 + 报告独立「危险操作拦截」section；
+  显式 allowDangerous/allowUnverifiable 放行并留痕
+- **StepContext**：证据/统计按 caseId+runId+attempt 隔离（证据唯一 key 不覆盖 + 性能逻辑 key 聚合）
+- **配置**：`safety.*`、`app.waitForIdleTimeout`；EnvironmentManager.applyTo 打通 env 层单一读取入口
+- **util**：AtomicFileWriter 原子写（temp+rename，fail-closed）
+- **测试**：hermetic instrumented SafetyGateSmokeTest / ProductDirSmokeTest / EnvApplyToSmokeTest
+
+### Fixed / Hardened
+- **假绿路径**：assertAppInForeground 从恒过的 Kotlin `assert()` 改 JUnit 断言；
+  空用例/空缓存回放不再假 PASS；AI 硬断言无评估器不再静默降级；
+  flakySafely 末次尝试补白名单（真 bug 不再被洗成「超时 flaky」）
+- **执行引擎并发**：监工超时僵尸线程协作取消 + terminal 拒并发；maxRounds 上限 + Phase6 超时；
+  三层重试统一预算硬顶；重试体系走 Throwable 级分类、副作用步骤默认不重放（retriable=false）
+- **集成坑框架侧根治**：产物目录改 targetContext（不落公共目录）；hamcrest 显式 api、
+  espresso-core exclude protobuf-lite（均进 POM）；发布带 sourcesJar
+- **存储信任边界**：Gson 反序列化递归 validator（挡 Unsafe 注入的 null/路径逃逸）；
+  原子写防进程中断静默清库；指纹库护出自动清理池
+- **自愈链正确性**：自愈/AI 命中写 provisional（禁自动转正 + 置信度封顶 + TTL）；
+  heal 按 packageName 过滤系统 UI；SelectorSpec.key 长度前缀防碰撞；多命中真消歧 fail-closed
+
+### Changed（破坏性 / 行为收紧，接入方回归注意）
+- **危险操作守卫默认拦截**（safety.enabled 默认 true）：命中危险词表或**不可审计目标**（无 text/res-id/desc）的点击**默认 fail-closed 抛异常**——既有点击/缓存回放/弹窗恢复链路若触达这类目标，运行结果会从「点击」变为「拦截失败」；用例明确需要执行时须显式 `allowDangerous=true`（危险词）/`allowUnverifiable=true`（不可审计目标）放行并留痕
+- **DialogDismiss 默认不再自动点确认类按钮**（确定/OK/知道了）——依赖旧「弹窗自动 dismiss-retry」的只读步骤需改 `retriableStep` 或显式 confirmTexts
+- Interceptor/BehaviorInterceptor step 回调签名 → `StepContext`
+- `Step.retriable` 默认 false（behavior 恢复链默认不重放，副作用保护）
+- `SelfHealingLocator.find/tryFind` @Deprecated（裸 UiObject2 点击绕守卫，改用 `element/click`）
+- `FlakyClassifier.registerRule/clearRules` @Deprecated（改 DefaultFlakyClassifier 实例注入）
+- `SelectorSpec.key()` 编码变化（旧指纹/缓存 key 失效，一次性重积累）
+- AI 硬断言无评估器时不再静默通过（改 FAIL）；空用例/空缓存回放不再假 PASS
+
+### Stats
+- 280 条单元测试 / 19 个模块（含新增 safety 包）/ 8 条 hermetic instrumented 冒烟
+
 ## [1.6.0] - 2026-06-12
 
 > 主题：把「AI 探索」和「确定性回归」焊接起来（机制详见 `docs/09-AI驱动测试机制.md`）。

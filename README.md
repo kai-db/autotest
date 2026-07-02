@@ -2,10 +2,11 @@
 
 可复用的 Android 自动化测试框架，基于 **Espresso + UiAutomator**，配合 **Claude Code + mobile-mcp** 实现 AI 驱动的测试。
 
-**v1.6.0** | 18 个模块 | 199 条单元测试 | AAR 发布至 mavenLocal
+**v1.7.1** | 19 个模块 | 280 条单元测试 | AAR 发布至 mavenLocal
 
-> v1.6 新增：三级自愈定位、固化桥缓存回放、AI 软断言通道、历史通过率自适应重试、
-> Behavior/Watcher 双链拦截器、失败根因分类。机制说明见 `docs/09-AI驱动测试机制.md`。
+> v1.7 新增：危险操作点击网关（safety 包，铁律#7 代码层）、StepContext 证据隔离、
+> 集成坑 POM 根治（hamcrest/protobuf-lite/sourcesJar）、存储信任边界与自愈链加固。
+> 四批架构加固见 `docs/implementation/2026-07-02-*`；机制说明见 `docs/09-AI驱动测试机制.md`。
 
 ---
 
@@ -26,7 +27,7 @@ cd autotest
 allprojects { repositories { mavenLocal() } }
 
 // app/build.gradle
-androidTestImplementation 'com.autotest:autotest:1.6.0'
+androidTestImplementation 'com.autotest:autotest:1.7.1'
 ```
 
 ---
@@ -35,21 +36,25 @@ androidTestImplementation 'com.autotest:autotest:1.6.0'
 
 ```
 com.autotest
-├── base/          测试基类（集成拦截器+日志+生命周期）
-├── config/        分层配置 + 多环境管理（LOCAL/CI/STAGING）
+├── base/          测试基类（集成拦截器+日志+生命周期+危险操作守卫）
+├── safety/        危险操作点击网关（DangerousOpsGuard，铁律#7 代码层，fail-closed）
+├── config/        分层配置（global<app<env<cli）+ 多环境（applyTo 打通 env 层）
 ├── data/          测试数据管理（TestAccount + JSON + 按环境区分）
 ├── device/        设备能力封装（网络/权限/屏幕/App/Logcat）
 ├── action/        通用操作（Tab 切换、引导页跳过）
-├── assertion/     通用断言（前台、文本、控件可见）
-├── dsl/           DSL（编号/条件/重试/恢复/循环 + BaseScenario 复用）
+├── assertion/     通用断言 + AI 软断言（AiAsserter）
+├── selector/      复合选择器 DSL + 三级自愈定位 + 指纹库（provisional/TTL）
+├── bridge/        固化桥：用例缓存 + 确定性回放
+├── dsl/           DSL（step/retriableStep/flakyStep/恢复/循环 + StepContext）
 ├── engine/        执行引擎（TestRunner + TestSuite + MonitorMode + TestCaseParser）
-├── intercept/     拦截器链（日志/截图/性能/弹窗/Logcat 5种内置）
+├── intercept/     双链拦截器：watcher（日志/截图/性能/内存/Logcat）+ behavior（弹窗恢复）
 ├── lifecycle/     测试生命周期钩子
 ├── log/           统一日志（分级 D/I/W/E + Logcat + 文件）
-├── report/        报告（JSON + HTML + 摘要统计）
+├── diagnosis/     LogcatAnalyzer 失败根因签名（crash/ANR/OOM/native）
+├── report/        报告（JSON + HTML + AI断言/自愈/危险操作 独立 section）
 ├── runner/        设备信息收集
-├── stability/     Flaky 分类 + 自动重试
-└── util/          Espresso/UiAutomator 扩展 + 等待工具 + 截图 Rule
+├── stability/     Flaky 分类（可注入）+ 自适应重试 + 统一预算硬顶
+└── util/          Espresso/UiAutomator 扩展 + 原子写 + 等待 + 截图 Rule
 ```
 
 ---
@@ -218,13 +223,13 @@ monitor.writeResults()         // 生成 TEST_RESULTS.md
 操作和步骤前后自动执行通用逻辑：
 
 ```kotlin
-// BaseUiTest 默认注册了 LoggingInterceptor + ScreenshotInterceptor
-// 自定义拦截器：
+// BaseUiTest 默认注册了 Logging/Screenshot/Logcat/Performance/Memory + DialogDismiss（behavior）
+// 自定义拦截器（step 回调收 StepContext，含 caseId/runId/attempt，证据按此隔离）：
 interceptors.add(object : Interceptor {
-    override fun beforeStep(stepNumber: String, stepName: String) {
-        logger.i("Custom", "开始步骤: $stepName")
+    override fun beforeStep(ctx: StepContext) {
+        logger.i("Custom", "开始步骤: ${ctx.stepName}")
     }
-    override fun onStepFailure(stepNumber: String, stepName: String, error: Throwable) {
+    override fun onStepFailure(ctx: StepContext, error: Throwable) {
         // 失败时自动收集日志
     }
 })
@@ -232,13 +237,14 @@ interceptors.add(object : Interceptor {
 
 内置拦截器：
 
-| 拦截器 | 功能 |
-|---|---|
-| `DialogDismissInterceptor` | 操作前自动关闭权限弹窗/App 弹窗 |
-| `LoggingInterceptor` | 自动记录操作和步骤日志 |
-| `ScreenshotInterceptor` | 步骤失败自动截图（路径可追溯） |
-| `PerformanceInterceptor` | 耗时超阈值警告 |
-| `LogcatInterceptor` | 步骤失败自动收集设备 logcat 日志 |
+| 拦截器 | 链 | 功能 |
+|---|---|---|
+| `DialogDismissInterceptor` | behavior | 步骤失败后关弹窗恢复（默认不点确认类按钮；权限/App 弹窗） |
+| `LoggingInterceptor` | watcher | 自动记录操作和步骤日志 |
+| `ScreenshotInterceptor` | watcher | 步骤失败自动截图（证据 key 唯一，跨用例不覆盖） |
+| `PerformanceInterceptor` | watcher | 耗时 P50/P95 + 超阈值警告 |
+| `LogcatInterceptor` | watcher | 步骤失败自动收集设备 logcat |
+| `MemoryInterceptor` | watcher | 每步 PSS + 相对基线泄漏告警 |
 
 ---
 
@@ -324,4 +330,4 @@ flakySafely(
 
 ## 版本
 
-当前版本 `1.6.0`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
+当前版本 `1.7.1`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。

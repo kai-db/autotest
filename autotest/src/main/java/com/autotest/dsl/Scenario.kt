@@ -1,8 +1,15 @@
 package com.autotest.dsl
 
 import com.autotest.intercept.InterceptorChain
+import com.autotest.intercept.StepContext
 import com.autotest.report.ReportCollector
 import com.autotest.report.StepResult
+import com.autotest.stability.FlakyType
+import com.autotest.stability.RetryBudget
+import com.autotest.stability.StepRetryBudgetHolder
+import com.autotest.stability.DefaultFlakyClassifier
+import com.autotest.stability.FlakyClassifierApi
+import java.util.concurrent.atomic.AtomicLong
 
 class Scenario(
     val name: String,
@@ -11,50 +18,74 @@ class Scenario(
     private val interceptors: InterceptorChain? = null
 ) {
     fun run() {
+        // runId 每次 run() 生成——同一 Scenario 对象多轮/Phase6/重跑各自不同，证据不复用（P0-8）
+        val runId = RUN_SEQ.incrementAndGet().toString()
         steps.forEachIndexed { index, step ->
-            val stepNumber = "${index + 1}"
+            var attempt = 0
+            var ctx = StepContext(
+                caseId = name,
+                stepNumber = "${index + 1}",
+                stepName = step.name,
+                runId = runId,
+                attempt = attempt
+            )
             val start = System.currentTimeMillis()
 
-            interceptors?.fireBeforeStep(stepNumber, step.name)
+            interceptors?.fireBeforeStep(ctx)
 
+            // per-step 共享预算：flakyStep 与 behavior 重放都从它消费，统一封顶（D1）
+            val budget = RetryBudget()
+            budget.markFirstAttempt()
+            StepRetryBudgetHolder.set(budget)
             try {
-                // 失败时先走 behavior 恢复链（如关闭中途弹出的弹窗后重试一次），全链无解才算失败
-                interceptors?.runWithRecovery(stepNumber, step.name) { step.run() } ?: step.run()
+                interceptors?.runWithRecovery(
+                    ctx,
+                    step.retriable,
+                    // 仅当共享预算尚有额度才放行重放并递增 attempt；耗尽返回 false，runWithRecovery 停止重放
+                    onRetry = { if (budget.tryConsume()) { attempt++; true } else false },
+                    action = { step.run() }
+                ) ?: step.run()
                 val duration = System.currentTimeMillis() - start
+                ctx = ctx.copy(attempt = attempt)
 
-                interceptors?.fireAfterStep(stepNumber, step.name, duration)
+                interceptors?.fireAfterStep(ctx, duration)
                 collector?.addStepResult(
                     StepResult(
                         scenarioName = name,
                         stepName = step.name,
-                        stepNumber = stepNumber,
+                        stepNumber = ctx.stepNumber,
                         durationMs = duration,
                         passed = true,
-                        // 成功步骤默认不截图/不收日志，这里通常为 null（零图）
-                        screenshotPath = interceptors?.stepScreenshotPath(stepNumber),
-                        logcatPath = interceptors?.stepLogcatPath(stepNumber)
+                        screenshotPath = interceptors?.stepScreenshotPath(ctx),
+                        logcatPath = interceptors?.stepLogcatPath(ctx)
                     )
                 )
             } catch (e: Throwable) {
                 val duration = System.currentTimeMillis() - start
+                ctx = ctx.copy(attempt = attempt)
 
-                interceptors?.fireOnStepFailure(stepNumber, step.name, e)
+                interceptors?.fireOnStepFailure(ctx, e)
                 collector?.addStepResult(
                     StepResult(
                         scenarioName = name,
                         stepName = step.name,
-                        stepNumber = stepNumber,
+                        stepNumber = ctx.stepNumber,
                         durationMs = duration,
                         passed = false,
-                        error = e.message,
-                        // 失败步骤已由 Screenshot/Logcat 拦截器收集证据，回填路径到报告（可追溯）
-                        screenshotPath = interceptors?.stepScreenshotPath(stepNumber),
-                        logcatPath = interceptors?.stepLogcatPath(stepNumber)
+                        error = e.message ?: e.toString(),
+                        screenshotPath = interceptors?.stepScreenshotPath(ctx),
+                        logcatPath = interceptors?.stepLogcatPath(ctx)
                     )
                 )
                 throw e
+            } finally {
+                StepRetryBudgetHolder.clear()
             }
         }
+    }
+
+    companion object {
+        private val RUN_SEQ = AtomicLong(0)
     }
 }
 
@@ -63,40 +94,72 @@ class ScenarioBuilder(private val name: String) {
     var collector: ReportCollector? = null
     var interceptors: InterceptorChain? = null
 
-    /** 普通步骤 */
-    fun step(name: String, action: () -> Unit) {
-        steps.add(Step(name, action))
+    /** 普通步骤（默认 retriable=false：behavior 恢复链不重放，副作用保护） */
+    fun step(name: String, retriable: Boolean = false, action: () -> Unit) {
+        steps.add(Step(name, retriable, action))
+    }
+
+    /** 可被 behavior 恢复链重放的步骤（只读/幂等步骤专用：dismiss 挡路弹窗后重试） */
+    fun retriableStep(name: String, action: () -> Unit) {
+        steps.add(Step(name, retriable = true, action))
     }
 
     /** 条件步骤：condition 为 true 时才执行 */
     fun stepIf(condition: Boolean, name: String, action: () -> Unit) {
-        if (condition) steps.add(Step(name, action))
+        if (condition) steps.add(Step(name, action = action))
     }
 
-    /** 可重试步骤：失败后重试指定次数 */
-    fun flakyStep(name: String, maxRetries: Int = 2, intervalMs: Long = 1000, action: () -> Unit) {
+    /**
+     * 可重试步骤：失败后按 [classifier] 判定重试。
+     * 只重试 FLAKY（时序/未就绪）；HARD_FAIL（NPE/AssertionError 等真 bug）直接抛，不再重试到耗尽（D1）。
+     * 重试次数受 [maxRetries] 与统一预算 [RetryBudget.MAX_TOTAL_ATTEMPTS] 双重封顶（防三层叠乘）。
+     */
+    fun flakyStep(
+        name: String,
+        maxRetries: Int = 2,
+        intervalMs: Long = 1000,
+        classifier: FlakyClassifierApi = DEFAULT_CLASSIFIER,
+        action: () -> Unit
+    ) {
         steps.add(Step(name) {
-            var lastError: Throwable? = null
-            for (attempt in 0..maxRetries) {
+            // 优先用步骤级共享预算（与 behavior 重放共享封顶，D1）；无共享上下文时自建局部预算
+            val budget = StepRetryBudgetHolder.current() ?: RetryBudget().also { it.markFirstAttempt() }
+            var localRetries = 0
+            var lastError: Throwable
+            try {
+                action()
+                return@Step
+            } catch (e: Throwable) {
+                lastError = e
+            }
+            while (true) {
+                if (classifier.classify(lastError) == FlakyType.HARD_FAIL) throw lastError
+                if (localRetries >= maxRetries) throw lastError       // 本步自身重试上限
+                if (!budget.tryConsume()) throw lastError             // 共享预算硬顶（三层不叠乘）
+                localRetries++
+                Thread.sleep(intervalMs)
                 try {
                     action()
                     return@Step
                 } catch (e: Throwable) {
                     lastError = e
-                    if (attempt < maxRetries) Thread.sleep(intervalMs)
                 }
             }
-            throw lastError!!
         })
     }
 
-    /** 带异常恢复的步骤：失败时执行 recovery 后重试一次 */
+    /** 带异常恢复的步骤：失败时执行 recovery 后重试一次；recovery 自身抛错不吞掉原始失败 */
     fun stepWithRecovery(name: String, action: () -> Unit, recovery: (Throwable) -> Unit) {
         steps.add(Step(name) {
             try {
                 action()
             } catch (e: Throwable) {
-                recovery(e)
+                try {
+                    recovery(e)
+                } catch (re: Throwable) {
+                    re.addSuppressed(e) // 不丢原始失败：排障时既能看到恢复错、也能看到原始错
+                    throw re
+                }
                 action() // 恢复后重试一次
             }
         })
@@ -127,6 +190,10 @@ class ScenarioBuilder(private val name: String) {
 
     fun build(): Scenario {
         return Scenario(name, steps.toList(), collector, interceptors)
+    }
+
+    companion object {
+        private val DEFAULT_CLASSIFIER = DefaultFlakyClassifier()
     }
 }
 

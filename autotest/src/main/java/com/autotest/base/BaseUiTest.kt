@@ -69,8 +69,40 @@ abstract class BaseUiTest {
         FingerprintStore(File(TestConfig.screenshotDir, "fingerprints.json"), logger)
     }
 
+    private val guardDelegate = lazy {
+        com.autotest.safety.DangerousOpsGuard(
+            dangerousTexts = com.autotest.safety.DangerousOpsGuard.buildWordlist(
+                projectTexts = TestConfig.safetyDangerousTexts,
+                replace = TestConfig.safetyDangerousTextsReplace
+            ),
+            logger = logger,
+            evidenceCapture = { prefix ->
+                val file = File(TestConfig.screenshotDir, "${prefix}_${System.currentTimeMillis()}.png")
+                val parent = file.parentFile
+                if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                    // 危险操作审计证据不能静默丢失（Silent failure 零容忍）：留痕失败路径
+                    logger.w("Guard", "证据截图目录创建失败，危险操作截图可能丢失: ${parent.absolutePath}")
+                }
+                if (device.takeScreenshot(file)) {
+                    file.absolutePath
+                } else {
+                    logger.w("Guard", "危险操作证据截图失败（takeScreenshot 返回 false）: ${file.absolutePath}")
+                    null
+                }
+            }
+        )
+    }
+
+    /** 危险操作点击守卫（铁律#7 代码层）：词表 = 内置 + 项目配置合并；事件自动回填报告 */
+    val guard: com.autotest.safety.DangerousOpsGuard by guardDelegate
+
     private val locatorDelegate = lazy {
-        SelfHealingLocator(device, fingerprintStore, aiFallback = createAiLocatorFallback(), logger = logger)
+        SelfHealingLocator(
+            device, fingerprintStore,
+            aiFallback = createAiLocatorFallback(),
+            logger = logger,
+            guard = if (TestConfig.safetyEnabled) guard else null
+        )
     }
 
     /** 三级降级定位器：确定性 → 指纹自愈 → AI 兜底；自愈事件自动回填报告 */
@@ -101,24 +133,36 @@ abstract class BaseUiTest {
         null
     }
 
+    /** setUp 前的 Configurator.waitForIdleTimeout 原值，tearDown 恢复（进程级单例，防跨测试类泄漏） */
+    private var savedIdleTimeout: Long = -1
+
     @Before
     open fun setUp() {
         TestConfig.init()
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         context = ApplicationProvider.getApplicationContext()
-        // 被测 App 可能永不进入 idle（消息轮询/动画），UiAutomator 默认每次查找前等 idle 10s 会拖死查找；置 0 立即查找
-        androidx.test.uiautomator.Configurator.getInstance().waitForIdleTimeout = 0L
+        // 被测 App 可能永不进入 idle（消息轮询/动画），UiAutomator 默认每次查找前等 idle 10s 会拖死查找；
+        // 默认置 0 立即查找（可经 app.waitForIdleTimeout 调回）。记录原值，tearDown 恢复，避免污染同进程后续测试类。
+        val configurator = androidx.test.uiautomator.Configurator.getInstance()
+        savedIdleTimeout = configurator.waitForIdleTimeout
+        configurator.waitForIdleTimeout = TestConfig.waitForIdleTimeout
         IdlingRegistry.getInstance().register(idlingResource)
 
         logger = DefaultTestLogger(logDir = TestConfig.screenshotDir)
-        TestArtifacts.cleanup(File(TestConfig.screenshotDir))  // 清理旧产物，防截图/日志/报告无限堆积
+        // 清理旧产物防无限堆积；指纹库是跨 run 持久资产，护住不被按数量清掉（B3）
+        TestArtifacts.cleanup(File(TestConfig.screenshotDir), protectedNames = setOf("fingerprints.json"))
         interceptors.logger = logger
+        // 危险操作守卫（铁律#7 代码层）：注册到全局供扩展函数入口取用；关闭时留审计事件，不允许静默
+        if (TestConfig.safetyEnabled) {
+            com.autotest.safety.GuardRegistry.current = guard
+        } else {
+            guard.recordDisabled()
+            com.autotest.safety.GuardRegistry.current = null
+        }
         val screenshotInterceptor = ScreenshotInterceptor(logger = logger)
-        val dialogDismiss = DialogDismissInterceptor(logger)
-        // behavior 链：步骤失败时按序尝试恢复（弹窗可能在步骤执行中途弹出，beforeStep 扫不到）
-        interceptors.addBehavior(dialogDismiss)
+        // 弹窗恢复只挂 behavior 链：watcher 链契约是纯旁路观察，主动点击违反契约（P0-1 收敛）
+        interceptors.addBehavior(DialogDismissInterceptor(logger))
         interceptors.addAll(
-            dialogDismiss,
             LoggingInterceptor(logger),
             screenshotInterceptor,
             LogcatInterceptor(logger),       // 步骤失败时自动收集设备 logcat（含 crash/FATAL）
@@ -136,12 +180,21 @@ abstract class BaseUiTest {
         // 测试失败时取最近 logcat 做根因分析（crash/ANR/OOM 签名回填报告）
         reportCollector.logcatProvider = { device.executeShellCommand("logcat -d -t 400") }
         reportCollector.rootCausePackage = TestConfig.packageName
+        // 危险操作守卫事件回填报告（阻断/放行/禁用全留痕）
+        reportCollector.guardEventsProvider = {
+            if (guardDelegate.isInitialized()) guard.events else emptyList()
+        }
 
         logger.i("BaseUiTest", "setUp 完成，设备: ${android.os.Build.MODEL}")
     }
 
     @After
     open fun tearDown() {
+        com.autotest.safety.GuardRegistry.current = null
+        // 恢复 Configurator.waitForIdleTimeout 原值（进程级单例，防污染后续测试类）
+        if (savedIdleTimeout >= 0) {
+            androidx.test.uiautomator.Configurator.getInstance().waitForIdleTimeout = savedIdleTimeout
+        }
         IdlingRegistry.getInstance().unregister(idlingResource)
         try {
             Espresso.onIdle()
@@ -197,10 +250,12 @@ abstract class BaseUiTest {
         device.waitForIdle()
     }
 
-    /** 验证当前前台 App 是否为目标包名 */
+    /**
+     * 验证当前前台 App 是否为目标包名（委托 [com.autotest.assertion.AppAssertions]，消除双实现）。
+     * 原实现用 Kotlin `assert()`——依赖 JVM -ea 开关，ART 上默认关闭是恒过的空操作（P0-4）。
+     */
     fun assertAppInForeground(packageName: String = TestConfig.packageName) {
-        val current = device.currentPackageName
-        assert(current == packageName) { "App 不在前台, 当前: $current, 期望: $packageName" }
+        com.autotest.assertion.AppAssertions.assertInForeground(device, packageName)
     }
 
     // ==================== 设备操作 ====================

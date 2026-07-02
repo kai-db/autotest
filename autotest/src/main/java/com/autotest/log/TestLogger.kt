@@ -17,15 +17,23 @@ class DefaultTestLogger(
     private val logToFile: Boolean = true,
     private val logToLogcat: Boolean = true,
     private val minLevel: LogLevel = LogLevel.DEBUG,
-    logDir: String = "/sdcard/Pictures/autotest"
+    /**
+     * 日志目录。**null（默认）= 走 [com.autotest.config.TestConfig.screenshotDir] 单一来源**
+     * （targetContext 私有外部目录，可写）。不再硬编码 `/sdcard/Pictures/autotest`（scoped storage 必死）。
+     * lazy 取值，避免类构造即触发 TestConfig。
+     */
+    private val logDir: String? = null
 ) : TestLogger {
 
     enum class LogLevel { DEBUG, INFO, WARN, ERROR }
 
     private val dateFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
     private val logFile: File by lazy {
-        val dir = File(logDir)
-        dir.mkdirs()
+        val dir = File(logDir ?: com.autotest.config.TestConfig.screenshotDir)
+        if (!dir.exists() && !dir.mkdirs()) {
+            // mkdirs 失败（如公共目录 scoped-storage 拒写）：留痕到 logcat，别静默每条日志写失败刷屏
+            Log.w("AutoTest", "日志目录创建失败，后续文件日志可能写不进: ${dir.absolutePath}")
+        }
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         File(dir, "test_$timestamp.log")
     }

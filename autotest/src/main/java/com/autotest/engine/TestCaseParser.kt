@@ -23,7 +23,9 @@ object TestCaseParser {
         val name: String,
         val priority: String,
         val steps: List<String>,
-        val verifications: List<String>
+        val verifications: List<String>,
+        /** 用例体内以 - 或 * 开头但未匹配「步骤/验证」模式的行数——格式漂移信号，>0 时加载方应告警 */
+        val unmatchedBullets: Int = 0
     )
 
     fun parse(markdown: String): List<ParsedTestCase> {
@@ -35,6 +37,7 @@ object TestCaseParser {
         var currentName = ""
         var currentSteps = mutableListOf<String>()
         var currentVerifications = mutableListOf<String>()
+        var currentUnmatched = 0
         var inCase = false
 
         for (line in lines) {
@@ -44,7 +47,7 @@ object TestCaseParser {
             val priorityMatch = Regex("""^##\s+(P[012])\s*[—\-]""").find(trimmed)
             if (priorityMatch != null) {
                 if (inCase) {
-                    cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications))
+                    cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications, currentUnmatched))
                     inCase = false
                 }
                 currentPriority = priorityMatch.groupValues[1]
@@ -55,12 +58,13 @@ object TestCaseParser {
             val caseMatch = Regex("""^###\s+(TC-\d+)\s+(.+)""").find(trimmed)
             if (caseMatch != null) {
                 if (inCase) {
-                    cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications))
+                    cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications, currentUnmatched))
                 }
                 currentId = caseMatch.groupValues[1]
                 currentName = caseMatch.groupValues[2].trim()
                 currentSteps = mutableListOf()
                 currentVerifications = mutableListOf()
+                currentUnmatched = 0
                 inCase = true
                 continue
             }
@@ -80,11 +84,16 @@ object TestCaseParser {
                 currentVerifications.add(verifyMatch.groupValues[1].trim())
                 continue
             }
+
+            // 用例体内的 bullet 行没匹配上任何模式：计数留作格式漂移信号（如 "- 操作：" / "* 步骤："）
+            if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
+                currentUnmatched++
+            }
         }
 
         // 最后一个用例
         if (inCase) {
-            cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications))
+            cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications, currentUnmatched))
         }
 
         return cases
@@ -103,14 +112,16 @@ object TestCaseParser {
         name: String,
         priority: String,
         steps: List<String>,
-        verifications: List<String>
+        verifications: List<String>,
+        unmatchedBullets: Int
     ): ParsedTestCase {
         return ParsedTestCase(
             id = id,
             name = name,
             priority = priority,
             steps = steps.toList(),
-            verifications = verifications.toList()
+            verifications = verifications.toList(),
+            unmatchedBullets = unmatchedBullets
         )
     }
 }

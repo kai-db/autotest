@@ -28,7 +28,15 @@ class CaseCacheStore(
         val file = fileOf(caseId)
         if (!file.exists()) return null
         return try {
-            gson.fromJson(file.readText(), CachedCase::class.java)
+            val case = gson.fromJson(file.readText(), CachedCase::class.java)
+            // B1：Gson Unsafe 绕过 init 校验，反序列化后显式递归校验，坏数据按未命中处理（不让 NPE 炸在回放远端）
+            val err = case?.validationError()
+            if (case == null || err != null) {
+                logger?.w("CaseCache", "缓存 $caseId 结构不完整，按未命中处理: ${err ?: "反序列化为 null"}")
+                null
+            } else {
+                case
+            }
         } catch (e: Throwable) {
             logger?.w("CaseCache", "缓存 $caseId 损坏，按未命中处理: ${e.message}")
             null
@@ -41,14 +49,8 @@ class CaseCacheStore(
             logger?.w("CaseCache", "READ_ONLY 模式拒绝写入缓存: ${case.caseId}")
             return false
         }
-        return try {
-            dir.mkdirs()
-            fileOf(case.caseId).writeText(gson.toJson(case))
-            true
-        } catch (e: Throwable) {
-            logger?.w("CaseCache", "缓存写入失败: ${case.caseId}: ${e.message}")
-            false
-        }
+        // B2 原子写：进程中断不留半截 JSON、不静默清库
+        return com.autotest.util.AtomicFileWriter.writeText(fileOf(case.caseId), gson.toJson(case), logger)
     }
 
     /** 列出已缓存的用例 ID */

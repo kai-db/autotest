@@ -80,6 +80,12 @@ class TestRunner(
             s.run()
 
             lifecycle.fireAfterTestSuccess(name)
+        } catch (e: InterruptedException) {
+            // 协作取消/超时中断：恢复中断位并向上传播（finally 仍会跑清理与 fireAfterTestFinally），
+            // 不把中断当普通用例 FAIL 吞掉后继续跑剩余用例（P0-6 僵尸线程）
+            Thread.currentThread().interrupt()
+            logger.w("TestRunner", "用例被中断（超时取消），停止: $name")
+            throw e
         } catch (e: Throwable) {
             error = e
             logger.e("TestRunner", "用例失败: $name", e)

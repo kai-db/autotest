@@ -58,19 +58,36 @@ class TestHistoryStore(
         if (!file.exists()) return mutableMapOf()
         return try {
             val type = object : TypeToken<MutableMap<String, CaseHistory>>() {}.type
-            gson.fromJson<MutableMap<String, CaseHistory>>(file.readText(), type) ?: mutableMapOf()
+            val raw: MutableMap<String, CaseHistory> =
+                gson.fromJson(file.readText(), type) ?: return mutableMapOf()
+            // B1：逐条校验，坏条目跳过。outcomes 在 Gson 下元素是 boxed Boolean，可注入 [true,null] → 后续 count NPE
+            val clean = mutableMapOf<String, CaseHistory>()
+            for ((k, v) in raw) {
+                val err = historyError(v)
+                if (err != null) {
+                    logger?.w("TestHistory", "历史条目损坏已跳过 [$k]: $err")
+                } else {
+                    clean[k] = v
+                }
+            }
+            clean
         } catch (e: Throwable) {
             logger?.w("TestHistory", "历史库加载失败，按空库处理: ${e.message}")
             mutableMapOf()
         }
     }
 
+    @Suppress("SENSELESS_COMPARISON", "USELESS_CAST")
+    private fun historyError(h: CaseHistory?): String? {
+        if (h == null) return "条目为 null"
+        if (h.outcomes == null) return "outcomes 为 null"
+        // 转 List<Boolean?> 再判 null：直接 `it == null`（it: Boolean）会在拆箱时对 null 元素抛 NPE
+        if ((h.outcomes as List<Boolean?>).any { it == null }) return "outcomes 含 null 元素"
+        return null
+    }
+
     private fun save() {
-        try {
-            file.parentFile?.mkdirs()
-            file.writeText(gson.toJson(entries))
-        } catch (e: Throwable) {
-            logger?.w("TestHistory", "历史库写入失败: ${e.message}")
-        }
+        // B2 原子写：进程中断不留半截 JSON、不静默清空历史资产
+        com.autotest.util.AtomicFileWriter.writeText(file, gson.toJson(entries), logger)
     }
 }

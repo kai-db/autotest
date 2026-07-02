@@ -47,6 +47,13 @@ class AiAsserter(
                 val msg = "AI 断言跳过（无评估器）: $description"
                 if (optional) it.i(TAG, msg) else it.w(TAG, "$msg —— 这是硬断言，建议固化为确定性断言")
             }
+            if (!optional) {
+                // 硬断言不允许静默降级（P0-5）：与「评估器异常」路径行为对齐——SKIPPED 留痕后必须 FAIL
+                throw AssertionError(
+                    "AI 硬断言无法评估（未注入评估器）: $description —— " +
+                        "硬断言不允许静默降级；请注入 AiAssertionEvaluator 或固化为确定性断言"
+                )
+            }
             return
         }
 

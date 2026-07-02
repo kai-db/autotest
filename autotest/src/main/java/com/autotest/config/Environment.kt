@@ -19,7 +19,11 @@ data class EnvironmentConfig(
     val appPackage: String,
     val launchTimeout: Long = 15000,
     val maxLaunchTime: Long = 10000,
-    val screenshotDir: String = "/sdcard/Pictures/autotest",
+    /**
+     * 产物目录。**null（默认）= 未显式指定，回退 [TestConfig.screenshotDir]**（targetContext 私有外部目录）。
+     * 不再硬编码 `/sdcard/Pictures/autotest`（scoped storage 必死，且与 TestConfig 单一来源矛盾）。
+     */
+    val screenshotDir: String? = null,
     val extraConfig: Map<String, String> = emptyMap()
 )
 
@@ -57,6 +61,27 @@ object EnvironmentManager {
     fun current(): EnvironmentConfig {
         val env = currentEnv ?: resolveFromTestConfig()
         return configs[env] ?: defaultConfig(env)
+    }
+
+    /**
+     * 打通 EnvironmentManager → TestConfig 单一读取入口（消除两套平行配置）：
+     * 把 [current] 的 EnvironmentConfig 关键项注入 TestConfig 的 env 层。
+     *
+     * - **显式调用**（不在 TestConfig.defaultLoader 里自动调用），避免
+     *   `current()`→`resolveFromTestConfig()`→`TestConfig`→`defaultLoader` 的 init 循环递归。
+     * - **幂等**：可重复调用，每次以最新 EnvironmentConfig 重建 env override（同输入同结果，不累积）。
+     * - **覆盖顺序**：注入 env 层，优先级 `global < app < env < cli`——高于 properties 文件、低于命令行 `-e`。
+     */
+    fun applyTo() {
+        val c = current()
+        val overrides = buildMap {
+            put(ConfigKeys.APP_PACKAGE_NAME, c.appPackage)
+            put(ConfigKeys.APP_LAUNCH_TIMEOUT, c.launchTimeout.toString())
+            put(ConfigKeys.APP_MAX_LAUNCH_TIME, c.maxLaunchTime.toString())
+            c.screenshotDir?.let { put(ConfigKeys.APP_SCREENSHOT_DIR, it) } // null=不覆盖，回退 TestConfig 默认
+            putAll(c.extraConfig)
+        }
+        TestConfig.initWithEnv(overrides)
     }
 
     fun reset() {

@@ -41,8 +41,14 @@ class MonitorMode(
     private val suite: TestSuite,
     private val logger: TestLogger,
     private val resultsDir: String = ".",
-    private val maxRounds: Int = 10
+    private val maxRounds: Int = 10,
+    /** 每轮默认硬超时（毫秒），0=不限。runRound 与 Phase6 都默认取它——AI 驱动场景应设非零（如 300_000） */
+    private val defaultRoundTimeoutMs: Long = 0
 ) {
+
+    /** 某轮超时后置 true：worker 可能仍存活，拒绝启动新一轮（防并发操作 App / 共享状态竞争），reset 清除 */
+    @Volatile
+    private var timedOut: Boolean = false
 
     data class RoundResult(
         val round: Int,
@@ -113,7 +119,13 @@ class MonitorMode(
      * @param timeoutMs 本轮硬超时（毫秒），0 表示不限。AI 驱动场景必须设：
      *   被测 App 卡死/弹窗死循环时，超时让本轮以 FAIL 收尾而非永久挂起监工闭环。
      */
-    fun runRound(timeoutMs: Long = 0): RoundResult {
+    fun runRound(timeoutMs: Long = defaultRoundTimeoutMs): RoundResult {
+        check(!timedOut) {
+            "上一轮超时、worker 可能仍存活，拒绝启动新一轮（防并发操作 App / 共享 results 竞争）；请人工确认设备状态后调用 reset()"
+        }
+        check(rounds.size < maxRounds) {
+            "监工轮次已达上限 $maxRounds，疑似修复死循环，停下交用户裁决（不再无限累积）"
+        }
         val roundNumber = rounds.size + 1
         logger.i("Monitor", "══════ Phase 2: 第 $roundNumber 轮全量测试（${suite.getTestCount()} 条用例）══════")
 
@@ -135,14 +147,22 @@ class MonitorMode(
         return round
     }
 
-    /** 在独立线程跑全量并施加硬超时；超时记一条合成 FAIL（监工可据此进入修复阶段而非卡死） */
+    /**
+     * 在独立线程跑全量并施加硬超时；超时记一条合成 FAIL（监工可据此进入修复阶段而非卡死）。
+     * 协作式取消（P0-6）：超时时置 cancelled + shutdownNow(interrupt)，suite 在用例间检查点停下；
+     * 并置 timedOut——worker 可能忽略 interrupt 仍在跑，后续 runRound/Phase6 拒绝并发启动直到 reset。
+     */
     private fun runAllWithTimeout(timeoutMs: Long): List<TestCaseResult> {
+        val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
         val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
         return try {
-            executor.submit(java.util.concurrent.Callable { suite.runAll() })
-                .get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+            executor.submit(java.util.concurrent.Callable {
+                suite.runAll { cancelled.get() || Thread.currentThread().isInterrupted }
+            }).get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
         } catch (e: java.util.concurrent.TimeoutException) {
-            logger.e("Monitor", "本轮执行超时（${timeoutMs}ms），疑似卡死，强制收尾")
+            cancelled.set(true)
+            timedOut = true
+            logger.e("Monitor", "本轮执行超时（${timeoutMs}ms），疑似卡死，发取消信号并强制收尾；worker 未退出前拒绝启动新一轮")
             listOf(TestCaseResult("ROUND_TIMEOUT", false, timeoutMs, "本轮执行超时（${timeoutMs}ms），疑似卡死"))
         } catch (e: java.util.concurrent.ExecutionException) {
             throw e.cause ?: e // 还原 suite 内抛出的原始异常
@@ -176,9 +196,13 @@ class MonitorMode(
      * Phase 6: 最终验收。不改代码，再跑一遍全量。
      * 前置条件：上一轮已全部通过。
      */
-    fun runFinalVerification(): Boolean {
+    fun runFinalVerification(timeoutMs: Long = defaultRoundTimeoutMs): Boolean {
+        check(!timedOut) {
+            "上一轮超时、worker 可能仍存活，拒绝启动最终验收；请人工确认设备状态后调用 reset()"
+        }
         logger.i("Monitor", "══════ Phase 6: 最终验收 ══════")
-        val results = suite.runAll()
+        // Phase 6 默认复用 defaultRoundTimeoutMs——不再裸 runAll() 无超时，避免 App 卡死时永久挂起
+        val results = if (timeoutMs <= 0) suite.runAll() else runAllWithTimeout(timeoutMs)
         val passed = results.count { it.passed }
         val failed = results.count { !it.passed }
 
@@ -259,5 +283,6 @@ class MonitorMode(
     fun reset() {
         rounds.clear()
         fixRecords.clear()
+        timedOut = false
     }
 }

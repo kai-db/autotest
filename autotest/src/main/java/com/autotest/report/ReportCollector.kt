@@ -28,6 +28,12 @@ class ReportCollector : TestWatcher() {
      */
     var logcatProvider: (() -> String)? = null
 
+    /**
+     * 危险操作守卫事件提供器：由 BaseUiTest 接到 DangerousOpsGuard，
+     * 报告生成时回填 [RunReport.guardEvents]。默认 null。
+     */
+    var guardEventsProvider: (() -> List<com.autotest.safety.GuardEvent>)? = null
+
     /** 根因分析时的包名过滤（ANR 判定用），由 BaseUiTest 注入 */
     var rootCausePackage: String? = null
 
@@ -81,7 +87,8 @@ class ReportCollector : TestWatcher() {
             steps = steps,
             summary = ReportSummary.from(steps),
             aiAssertions = aiAssertions.toList(),
-            healingEvents = healingEventsProvider?.invoke() ?: emptyList()
+            healingEvents = healingEventsProvider?.invoke() ?: emptyList(),
+            guardEvents = guardEventsProvider?.invoke() ?: emptyList()
         )
     }
 }

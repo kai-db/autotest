@@ -26,19 +26,19 @@ class MemoryInterceptor(
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     }
 
-    /** stepNumber -> TOTAL PSS(KB)，保序便于看增长趋势 */
+    /** 逻辑 key(caseId#step) -> TOTAL PSS(KB)，保序便于看增长趋势（跨用例不再覆盖串味） */
     private val stepPssKb = linkedMapOf<String, Long>()
     private var baselineKb: Long = -1
 
-    override fun afterStep(stepNumber: String, stepName: String, durationMs: Long) {
+    override fun afterStep(ctx: StepContext, durationMs: Long) {
         val pss = readTotalPssKb()
         if (pss < 0) return
-        stepPssKb[stepNumber] = pss
+        stepPssKb[ctx.logicalKey] = pss
         if (baselineKb < 0) baselineKb = pss
 
         val growth = pss - baselineKb
         val sign = if (growth >= 0) "+" else ""
-        logger.d("Memory", "步骤[$stepNumber] PSS=${pss / 1024}MB (相对基线 $sign${growth / 1024}MB)")
+        logger.d("Memory", "步骤[${ctx.stepNumber}] PSS=${pss / 1024}MB (相对基线 $sign${growth / 1024}MB)")
         if (growth > leakWarnKb) {
             logger.w("Memory", "疑似内存泄漏：PSS 较基线增长 ${growth / 1024}MB，超阈值 ${leakWarnKb / 1024}MB")
         }

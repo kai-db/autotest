@@ -26,13 +26,19 @@ object CacheReplay {
         executor: ReplayExecutor,
         collector: ReportCollector? = null,
         interceptors: InterceptorChain? = null
-    ): Scenario = scenario(
-        name = case.caseId + (case.description.ifEmpty { "" }.let { if (it.isEmpty()) "" else " $it" }),
-        collector = collector,
-        interceptors = interceptors
-    ) {
-        case.steps.forEach { cachedStep ->
-            step(cachedStep.name) { executor.execute(case, cachedStep) }
+    ): Scenario {
+        // 空步骤缓存回放 = 空场景直接 PASS（假阳性）——缓存损坏/截断必须显式失败（P0-3）
+        require(case.steps.isNotEmpty()) {
+            "缓存用例 ${case.caseId} 无步骤，拒绝回放（空场景会假 PASS；请检查缓存文件是否损坏/截断）"
+        }
+        return scenario(
+            name = case.caseId + (case.description.ifEmpty { "" }.let { if (it.isEmpty()) "" else " $it" }),
+            collector = collector,
+            interceptors = interceptors
+        ) {
+            case.steps.forEach { cachedStep ->
+                step(cachedStep.name) { executor.execute(case, cachedStep) }
+            }
         }
     }
 }

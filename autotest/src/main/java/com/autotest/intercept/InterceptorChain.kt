@@ -53,35 +53,45 @@ class InterceptorChain {
         interceptors.forEach { safely { it.onActionFailure(actionName, error) } }
     }
 
-    fun fireBeforeStep(stepNumber: String, stepName: String) {
-        interceptors.forEach { safely { it.beforeStep(stepNumber, stepName) } }
+    fun fireBeforeStep(ctx: StepContext) {
+        interceptors.forEach { safely { it.beforeStep(ctx) } }
     }
 
-    fun fireAfterStep(stepNumber: String, stepName: String, durationMs: Long) {
-        interceptors.forEach { safely { it.afterStep(stepNumber, stepName, durationMs) } }
+    fun fireAfterStep(ctx: StepContext, durationMs: Long) {
+        interceptors.forEach { safely { it.afterStep(ctx, durationMs) } }
     }
 
-    fun fireOnStepFailure(stepNumber: String, stepName: String, error: Throwable) {
-        interceptors.forEach { safely { it.onStepFailure(stepNumber, stepName, error) } }
+    fun fireOnStepFailure(ctx: StepContext, error: Throwable) {
+        interceptors.forEach { safely { it.onStepFailure(ctx, error) } }
     }
 
     /**
-     * 取某步骤的截图路径（若链中有 ScreenshotInterceptor 且该步截过图）。
+     * 取某步骤的截图路径（按证据唯一 key，若链中有 ScreenshotInterceptor 且该步截过图）。
      * 默认只在步骤失败时截图，所以成功步骤通常返回 null——失败才有图、成功零图。
      */
-    fun stepScreenshotPath(stepNumber: String): String? =
-        interceptors.filterIsInstance<ScreenshotInterceptor>().firstOrNull()?.getScreenshotPath(stepNumber)
+    fun stepScreenshotPath(ctx: StepContext): String? =
+        interceptors.filterIsInstance<ScreenshotInterceptor>().firstOrNull()?.getScreenshotPath(ctx)
 
-    /** 取某步骤的 logcat 路径（若链中有 LogcatInterceptor 且该步收集过；默认仅失败步骤收集）。 */
-    fun stepLogcatPath(stepNumber: String): String? =
-        interceptors.filterIsInstance<LogcatInterceptor>().firstOrNull()?.getLogcatPath(stepNumber)
+    /** 取某步骤的 logcat 路径（按证据唯一 key，默认仅失败步骤收集）。 */
+    fun stepLogcatPath(ctx: StepContext): String? =
+        interceptors.filterIsInstance<LogcatInterceptor>().firstOrNull()?.getLogcatPath(ctx)
 
     /**
-     * 带恢复链的执行：失败时按注册序让 behavior 节点尝试恢复，
-     * 任一节点恢复成功则重试一次（重试再失败的新错误交给后续节点）；
-     * 全链无能为力抛出最后一次的错误。behavior 节点自身异常按"无能为力"处理并留痕。
+     * 带恢复链的执行：失败时按注册序让 behavior 节点尝试恢复。
+     *
+     * 副作用保护（D1）：恢复动作（如关弹窗）照常执行，但**是否重放步骤取决于 [retriable]**——
+     * - retriable=true：任一节点恢复成功则重试一次（重试再失败的新错误交给后续节点）；
+     * - retriable=false（默认）：恢复动作执行完也**不重放**，原始失败照抛（避免转账/签名等已生效副作用被重复执行）。
+     * 全链无能为力（或不可重放）抛出最后一次错误。behavior 节点自身异常按"无能为力"处理并留痕。
+     *
+     * @param onRetry 每次真正重放前回调（供上层递增 attempt / 消费重试预算），返回 false 表示预算耗尽、停止重放。
      */
-    fun <T> runWithRecovery(stepNumber: String, stepName: String, action: () -> T): T {
+    fun <T> runWithRecovery(
+        ctx: StepContext,
+        retriable: Boolean,
+        onRetry: () -> Boolean = { true },
+        action: () -> T
+    ): T {
         var lastError: Throwable
         try {
             return action()
@@ -90,13 +100,24 @@ class InterceptorChain {
         }
         for (behavior in behaviors) {
             val recovered = try {
-                behavior.tryRecover(stepNumber, stepName, lastError)
+                behavior.tryRecover(ctx, lastError)
             } catch (e: Throwable) {
                 logger?.w("Interceptor", "behavior 节点异常已忽略(${behavior.javaClass.simpleName}): ${e.message}")
                 false
             }
             if (!recovered) continue
-            logger?.i("Interceptor", "步骤[$stepNumber]经 ${behavior.javaClass.simpleName} 恢复，重试")
+            if (!retriable) {
+                logger?.w(
+                    "Interceptor",
+                    "步骤[${ctx.stepNumber}]经 ${behavior.javaClass.simpleName} 做了恢复动作，但该步骤 retriable=false（副作用保护），不重放，原始失败照抛"
+                )
+                continue
+            }
+            if (!onRetry()) {
+                logger?.w("Interceptor", "步骤[${ctx.stepNumber}]重试预算耗尽，停止重放")
+                break
+            }
+            logger?.i("Interceptor", "步骤[${ctx.stepNumber}]经 ${behavior.javaClass.simpleName} 恢复，重试")
             try {
                 return action()
             } catch (e: Throwable) {

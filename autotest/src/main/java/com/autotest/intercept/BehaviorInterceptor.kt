@@ -13,6 +13,9 @@ interface BehaviorInterceptor {
      * 尝试从失败中恢复（如关闭挡路弹窗、滚动到目标元素）。
      *
      * @return true 表示已做出恢复动作、值得重试一次该步骤；false 表示无能为力，交给下一个节点
+     *
+     * 注意：返回 true 只代表「恢复动作已执行」；是否真的重放步骤由 [InterceptorChain.runWithRecovery]
+     * 结合步骤的 retriable 决定——retriable=false 的步骤即便恢复成功也不重放（副作用保护，D1）。
      */
-    fun tryRecover(stepNumber: String, stepName: String, error: Throwable): Boolean
+    fun tryRecover(ctx: StepContext, error: Throwable): Boolean
 }

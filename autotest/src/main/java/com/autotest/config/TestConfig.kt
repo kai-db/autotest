@@ -27,11 +27,21 @@ object TestConfig {
         initialized = true
     }
 
+    /** 无参入口（既有公开 API）；Kotlin 优先精确匹配，不与 init(loader) 歧义。 */
     fun init() {
         init(defaultLoader())
     }
 
-    private fun defaultLoader(): ConfigLoader {
+    /**
+     * @param envOverrides 注入 ConfigLoader 的 env 层（覆盖顺序 global < app < env < cli，即高于
+     *   properties/低于命令行 -e）。由 [EnvironmentManager.applyTo] 显式调用打通两套配置。
+     *   （单独命名以避免与无参 [init] 的重载歧义。）
+     */
+    fun initWithEnv(envOverrides: Map<String, String>) {
+        init(defaultLoader(envOverrides))
+    }
+
+    private fun defaultLoader(envOverrides: Map<String, String> = emptyMap()): ConfigLoader {
         props.clear()
         try {
             val ctx = InstrumentationRegistry.getInstrumentation().context
@@ -42,7 +52,7 @@ object TestConfig {
         return ConfigLoader(
             global = propsAsMap(),
             app = emptyMap(),
-            env = emptyMap(),
+            env = envOverrides,
             cli = bundleAsMap(instrArgs)
         )
     }
@@ -125,10 +135,29 @@ object TestConfig {
         get() {
             val configured = getString(ConfigKeys.APP_SCREENSHOT_DIR)
             if (configured.isNotEmpty()) return configured
-            val ctx = InstrumentationRegistry.getInstrumentation().context
+            // 用 targetContext（被测 App 进程 UID 有权写自己的外部目录）——instrumentation 跑在目标 App uid 下，
+            // 用 test 包 context 的外部目录会 scoped-storage 拒写/未 provision（G3-③ 教训，此处框架侧根治）。
+            val ctx = InstrumentationRegistry.getInstrumentation().targetContext
             return (ctx.getExternalFilesDir("autotest") ?: ctx.filesDir).absolutePath
         }
 
+    /**
+     * UiAutomator `Configurator.waitForIdleTimeout`（毫秒）。默认 **0**：被测 App 永不 idle（实时列表/动画/轮询）
+     * 时，非 0 会让每次查找前空等而拖死查找；需要 idle 语义的 App 可经 `app.waitForIdleTimeout` 调回。
+     */
+    val waitForIdleTimeout: Long get() = getLong(ConfigKeys.APP_WAIT_FOR_IDLE_TIMEOUT, 0L)
+
     /** 是否在失败时自动截图 */
     val screenshotOnFailure: Boolean get() = getBoolean(ConfigKeys.APP_SCREENSHOT_ON_FAILURE, true)
+
+    // ==================== 危险操作守卫（铁律#7 代码层） ====================
+
+    /** 守卫开关（默认开；关闭仅限调试/非钱包接入，且会留审计事件） */
+    val safetyEnabled: Boolean get() = getBoolean(ConfigKeys.SAFETY_ENABLED, true)
+
+    /** 项目危险词表（逗号分隔，默认与内置合并） */
+    val safetyDangerousTexts: List<String> get() = getList(ConfigKeys.SAFETY_DANGEROUS_TEXTS)
+
+    /** 项目词表是否完全替换内置（显式 opt-in，默认合并） */
+    val safetyDangerousTextsReplace: Boolean get() = getBoolean(ConfigKeys.SAFETY_DANGEROUS_TEXTS_REPLACE, false)
 }

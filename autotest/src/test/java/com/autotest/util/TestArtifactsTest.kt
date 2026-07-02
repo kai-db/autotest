@@ -63,4 +63,13 @@ class TestArtifactsTest {
         TestArtifacts.cleanup(tmp.root)
         assertEquals(0, tmp.root.listFiles()!!.size)
     }
+
+    @Test
+    fun `B3 protectedNames 的文件永不被删（指纹库跨 run 护住）`() {
+        val fp = createFile("fingerprints.json", 1) // 最旧
+        repeat(5) { createFile("shot_$it.png", 1000L + it) } // 5 张新截图
+        // 只保留最近 2 个，但 fingerprints.json 受保护不参与竞争
+        TestArtifacts.cleanup(tmp.root, keepRecent = 2, protectedNames = setOf("fingerprints.json"))
+        assertTrue("指纹库应被护住", fp.exists())
+    }
 }

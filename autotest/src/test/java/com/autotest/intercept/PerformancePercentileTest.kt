@@ -15,7 +15,9 @@ class PerformancePercentileTest {
 
     private fun interceptorWith(vararg durations: Long): PerformanceInterceptor {
         val p = PerformanceInterceptor(fakeLogger)
-        durations.forEachIndexed { i, d -> p.afterStep("${i + 1}", "step$i", d) }
+        durations.forEachIndexed { i, d ->
+            p.afterStep(StepContext(caseId = "c", stepNumber = "${i + 1}", stepName = "step$i", runId = "r0"), d)
+        }
         return p
     }
 

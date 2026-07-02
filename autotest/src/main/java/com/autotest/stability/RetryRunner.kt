@@ -14,7 +14,7 @@ import org.junit.runners.model.Statement
  */
 class RetryRunner(
     private val policy: RetryPolicy = RetryPolicy(),
-    private val classifier: FlakyClassifier = FlakyClassifier,
+    private val classifier: FlakyClassifierApi = DefaultFlakyClassifier(),
     private val adaptivePolicy: AdaptiveRetryPolicy? = null,
     private val history: TestHistoryStore? = null
 ) : TestRule {
@@ -23,7 +23,9 @@ class RetryRunner(
         return object : Statement() {
             override fun evaluate() {
                 val caseId = "${description.className}#${description.methodName}"
-                val maxRetries = adaptivePolicy?.retryBudget(caseId) ?: policy.maxRetries
+                // 与统一预算硬顶对齐：整方法级重试也不超过 MAX_TOTAL_ATTEMPTS-1，防三层重试叠乘
+                val requested = adaptivePolicy?.retryBudget(caseId) ?: policy.maxRetries
+                val maxRetries = requested.coerceAtMost(RetryBudget.MAX_TOTAL_ATTEMPTS - 1)
                 val intervalMs = adaptivePolicy?.intervalMs ?: policy.intervalMs
 
                 var lastError: Throwable? = null
@@ -35,7 +37,8 @@ class RetryRunner(
                     } catch (e: Throwable) {
                         history?.record(caseId, false)
                         lastError = e
-                        val flakyType = classifier.classify(e.message)
+                        // 按 Throwable 类型优先判定：NPE 等真 bug 不因 message 措辞被误判 FLAKY 重试
+                        val flakyType = classifier.classify(e)
                         if (flakyType == FlakyType.HARD_FAIL) {
                             throw e // 非 Flaky 错误，不重试
                         }

@@ -62,4 +62,60 @@ class FingerprintStoreTest {
         store.record("k", snapshot)
         assertEquals(1, store.find("k")!!.hits)
     }
+
+    // ---- C1 provisional 语义 ----
+
+    @Test
+    fun `record 写权威指纹 provisional=false`() {
+        val store = FingerprintStore(tmp.root.resolve("fp.json"))
+        store.record("k", snapshot)
+        assertEquals(false, store.find("k")!!.provisional)
+    }
+
+    @Test
+    fun `recordProvisional 写暂定指纹 provisional=true`() {
+        val store = FingerprintStore(tmp.root.resolve("fp.json"))
+        store.recordProvisional("k", snapshot)
+        assertEquals(true, store.find("k")!!.provisional)
+    }
+
+    @Test
+    fun `已有权威指纹时 recordProvisional 不降级覆盖`() {
+        val store = FingerprintStore(tmp.root.resolve("fp.json"))
+        store.record("k", snapshot)                       // 权威
+        store.recordProvisional("k", snapshot.copy(text = "误愈")) // 尝试用暂定覆盖
+        val fp = store.find("k")!!
+        assertEquals("权威不应被暂定降级覆盖", false, fp.provisional)
+        assertEquals("登录", fp.snapshot.text)
+    }
+
+    @Test
+    fun `权威命中可覆盖此前的暂定（转正）`() {
+        val store = FingerprintStore(tmp.root.resolve("fp.json"))
+        store.recordProvisional("k", snapshot)  // 暂定
+        store.record("k", snapshot)             // L1 原始 selector 命中 → 转正
+        assertEquals(false, store.find("k")!!.provisional)
+    }
+
+    // ---- B1 反序列化坏数据过滤 ----
+
+    @Test
+    fun `snapshot 字段显式为 null 的坏指纹条目被跳过`() {
+        val file = tmp.root.resolve("fp.json")
+        // 手编 JSON：snapshot 的 String 字段显式 null（Gson 会把 null 写进非空字段）
+        file.writeText(
+            """{"k":{"selectorKey":"k","snapshot":{"text":"x","resourceId":null,"contentDesc":null,"className":null,"packageName":null,"bounds":null},"hits":1,"lastSeenMs":0}}"""
+        )
+        val store = FingerprintStore(file)
+        // snapshot 有 null 字段 → 结构不完整 → 跳过
+        assertNull(store.find("k"))
+    }
+
+    @Test
+    fun `snapshot 为 null 的坏条目被跳过`() {
+        val file = tmp.root.resolve("fp.json")
+        file.writeText("""{"k":{"selectorKey":"k","hits":1,"lastSeenMs":0}}""")
+        val store = FingerprintStore(file)
+        assertNull(store.find("k"))
+    }
 }

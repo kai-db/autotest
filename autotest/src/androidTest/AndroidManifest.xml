@@ -6,4 +6,11 @@
         <package android:name="com.tm.security.wallet" />
     </queries>
 
+    <application>
+        <!-- 守卫冒烟专用 Activity（androidTest-only，不进 AAR）：SafetyGateSmokeTest 使用 -->
+        <activity
+            android:name="com.autotest.safety.GuardTestActivity"
+            android:exported="false" />
+    </application>
+
 </manifest>

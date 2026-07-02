@@ -68,4 +68,14 @@ class TestHistoryStoreTest {
         assertEquals(1.0, s.passRate("TC-001")!!, 1e-9)
         assertEquals(0.0, s.passRate("TC-002")!!, 1e-9)
     }
+
+    @Test
+    fun `B1 outcomes 含 null 元素的坏条目被跳过（防 count NPE）`() {
+        val file = tmp.root.resolve("history.json")
+        // 手编 JSON：outcomes 含 null（Gson 下 List<Boolean> 元素是 boxed Boolean，可为 null）
+        file.writeText("""{"TC-001":{"outcomes":[true,null],"updatedAtMs":0},"TC-OK":{"outcomes":[true],"updatedAtMs":0}}""")
+        val s = TestHistoryStore(file)
+        assertNull("含 null 元素的坏条目应跳过", s.passRate("TC-001"))
+        assertEquals("结构完整的条目正常加载", 1.0, s.passRate("TC-OK")!!, 1e-9)
+    }
 }
