@@ -23,7 +23,9 @@ abstract class BaseActivityTest<T : Activity> : BaseUiTest() {
 
     @After
     override fun tearDown() {
-        scenario.close()
+        // E3：setUp 半途失败时 scenario 未初始化，直接访问会用 UninitializedPropertyAccessException
+        // 掩盖 setUp 的原始异常（真正根因）
+        if (::scenario.isInitialized) scenario.close()
         super.tearDown()
     }
 

@@ -160,7 +160,10 @@ class SelfHealingLocator(
         for (conjunction in alternatives) {
             val positives = conjunction.filterIsInstance<SelectorSpec.Leaf>()
             if (positives.isEmpty()) continue // 纯 Not 条件无法驱动设备查找，跳过该备选项
-            val by = positives.fold(null as BySelector?) { acc, leaf -> applyLeaf(acc, leaf) } ?: continue
+            // C3：BySelector 同属性二次 set 会抛 IllegalStateException（如 byText and byTextContains）。
+            // 每属性只取首个 Leaf（主 Leaf）驱动设备查找；其余条件**不丢**——完整 conjunction
+            // （含同属性其余 Leaf 与 Not）由下方 findObjects 后置过滤兜底，不满足则受控返回 null。
+            val by = primaryLeaves(positives).fold(null as BySelector?) { acc, leaf -> applyLeaf(acc, leaf) } ?: continue
 
             device.wait(Until.findObject(by), perAltTimeout) ?: continue
             // findObjects 重新取全量命中，用完整 conjunction（含 Not）过滤
@@ -195,6 +198,14 @@ class SelfHealingLocator(
     }
 
     companion object {
+        /**
+         * C3 纯决策：每属性只保留首个 Leaf 作为驱动 BySelector 的主 Leaf（同属性二次 set 会抛
+         * IllegalStateException）。被略过的同属性 Leaf 不会丢失——调用方用完整 conjunction 后置过滤。
+         * 抽为纯函数便于 JVM 单测。
+         */
+        internal fun primaryLeaves(positives: List<SelectorSpec.Leaf>): List<SelectorSpec.Leaf> =
+            positives.distinctBy { it.attr }
+
         /** provisional 基线自愈置信度上限：即便 exact match 也不给满分，始终留人审区间（C1） */
         const val PROVISIONAL_CEILING = 0.85
         /** provisional 指纹存活期（毫秒），过期不作自愈基线（C1），默认 24h */
@@ -248,7 +259,7 @@ class SelfHealingLocator(
             MatchMode.EXACT -> base?.text(leaf.value) ?: By.text(leaf.value)
             MatchMode.CONTAINS -> base?.textContains(leaf.value) ?: By.textContains(leaf.value)
             MatchMode.STARTS_WITH -> base?.textStartsWith(leaf.value) ?: By.textStartsWith(leaf.value)
-            MatchMode.REGEX -> Pattern.compile(leaf.value).let { base?.text(it) ?: By.text(it) }
+            MatchMode.REGEX -> leaf.pattern!!.let { base?.text(it) ?: By.text(it) } // 构造期已编译（Q4）
         }
         AttrType.RES_ID -> when (leaf.mode) {
             MatchMode.EXACT -> base?.res(leaf.value) ?: By.res(leaf.value)
@@ -258,7 +269,7 @@ class SelfHealingLocator(
             MatchMode.EXACT -> base?.desc(leaf.value) ?: By.desc(leaf.value)
             MatchMode.CONTAINS -> base?.descContains(leaf.value) ?: By.descContains(leaf.value)
             MatchMode.STARTS_WITH -> base?.descStartsWith(leaf.value) ?: By.descStartsWith(leaf.value)
-            MatchMode.REGEX -> Pattern.compile(leaf.value).let { base?.desc(it) ?: By.desc(it) }
+            MatchMode.REGEX -> leaf.pattern!!.let { base?.desc(it) ?: By.desc(it) } // 构造期已编译（Q4）
         }
         AttrType.CLASS_NAME -> when (leaf.mode) {
             MatchMode.EXACT -> base?.clazz(leaf.value) ?: By.clazz(leaf.value)
@@ -266,11 +277,11 @@ class SelfHealingLocator(
         }
     }
 
-    /** CONTAINS/STARTS_WITH 在无原生 By 支持的属性上转正则实现 */
+    /** CONTAINS/STARTS_WITH 在无原生 By 支持的属性上转正则实现；REGEX 复用构造期编译结果（Q4） */
     private fun SelectorSpec.Leaf.toPattern(): Pattern = when (mode) {
         MatchMode.CONTAINS -> Pattern.compile(".*" + Pattern.quote(value) + ".*")
         MatchMode.STARTS_WITH -> Pattern.compile(Pattern.quote(value) + ".*")
-        MatchMode.REGEX -> Pattern.compile(value)
+        MatchMode.REGEX -> pattern!!
         MatchMode.EXACT -> Pattern.compile(Pattern.quote(value))
     }
 }

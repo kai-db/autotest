@@ -38,6 +38,11 @@ class TestRunner(
     private val results = mutableListOf<TestCaseResult>()
     private var suiteStartTime: Long = 0L
 
+    init {
+        // E1 留痕通道：hook 异常被隔离时经 logger 可见
+        lifecycle.logger = logger
+    }
+
     /**
      * 执行单个测试用例。
      * 铁律6：每条用例前强制重置环境（如果设置了 envReset）。

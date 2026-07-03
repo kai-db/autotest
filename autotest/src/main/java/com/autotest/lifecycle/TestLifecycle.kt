@@ -30,6 +30,12 @@ interface TestLifecycleHook {
  */
 class TestLifecycleManager {
 
+    /**
+     * 钩子异常留痕通道（E1）：由宿主注入（BaseUiTest/TestRunner 的 setUp 期，与
+     * [com.autotest.intercept.InterceptorChain.logger] 同模式）；未注入时仅隔离不留痕（纯 JVM 场景）。
+     */
+    var logger: com.autotest.log.TestLogger? = null
+
     private val hooks = mutableListOf<TestLifecycleHook>()
 
     fun register(hook: TestLifecycleHook) {
@@ -45,26 +51,30 @@ class TestLifecycleManager {
     }
 
     fun fireBeforeTest(testName: String) {
-        hooks.forEach { safely { it.beforeTest(testName) } }
+        hooks.forEach { safely("beforeTest", it) { it.beforeTest(testName) } }
     }
 
     fun fireAfterTestSuccess(testName: String) {
-        hooks.forEach { safely { it.afterTestSuccess(testName) } }
+        hooks.forEach { safely("afterTestSuccess", it) { it.afterTestSuccess(testName) } }
     }
 
     fun fireAfterTestFailure(testName: String, error: Throwable) {
-        hooks.forEach { safely { it.afterTestFailure(testName, error) } }
+        hooks.forEach { safely("afterTestFailure", it) { it.afterTestFailure(testName, error) } }
     }
 
     fun fireAfterTestFinally(testName: String) {
-        hooks.forEach { safely { it.afterTestFinally(testName) } }
+        hooks.forEach { safely("afterTestFinally", it) { it.afterTestFinally(testName) } }
     }
 
-    private inline fun safely(block: () -> Unit) {
+    private inline fun safely(phase: String, hook: TestLifecycleHook, block: () -> Unit) {
         try {
             block()
-        } catch (_: Throwable) {
-            // Hook 异常不影响测试执行
+        } catch (e: Throwable) {
+            // Hook 异常不影响测试执行，但拒绝静默吞掉（E1）：留痕方便排查"钩子悄悄没生效"
+            logger?.w(
+                "Lifecycle",
+                "$phase hook 异常被隔离（${hook.javaClass.simpleName}）: ${e.javaClass.simpleName}: ${e.message}"
+            )
         }
     }
 }

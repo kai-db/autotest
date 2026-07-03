@@ -18,6 +18,12 @@ package com.autotest.engine
  */
 object TestCaseParser {
 
+    // Q4：正则提到 object 级一次编译（原先在 per-line 循环内每行重建）
+    private val PRIORITY_REGEX = Regex("""^##\s+(P[012])\s*[—\-]""")
+    private val CASE_REGEX = Regex("""^###\s+(TC-\d+)\s+(.+)""")
+    private val STEP_REGEX = Regex("""^-\s*步骤[：:]\s*(.+)""")
+    private val VERIFY_REGEX = Regex("""^-\s*验证[：:]\s*(.+)""")
+
     data class ParsedTestCase(
         val id: String,
         val name: String,
@@ -44,7 +50,7 @@ object TestCaseParser {
             val trimmed = line.trim()
 
             // 匹配优先级分组: ## P0 — xxx 或 ## P0 - xxx
-            val priorityMatch = Regex("""^##\s+(P[012])\s*[—\-]""").find(trimmed)
+            val priorityMatch = PRIORITY_REGEX.find(trimmed)
             if (priorityMatch != null) {
                 if (inCase) {
                     cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications, currentUnmatched))
@@ -55,7 +61,7 @@ object TestCaseParser {
             }
 
             // 匹配用例标题: ### TC-001 用例名称
-            val caseMatch = Regex("""^###\s+(TC-\d+)\s+(.+)""").find(trimmed)
+            val caseMatch = CASE_REGEX.find(trimmed)
             if (caseMatch != null) {
                 if (inCase) {
                     cases.add(buildCase(currentId, currentName, currentPriority, currentSteps, currentVerifications, currentUnmatched))
@@ -72,14 +78,14 @@ object TestCaseParser {
             if (!inCase) continue
 
             // 匹配步骤: - 步骤：xxx 或 - 步骤: xxx
-            val stepMatch = Regex("""^-\s*步骤[：:]\s*(.+)""").find(trimmed)
+            val stepMatch = STEP_REGEX.find(trimmed)
             if (stepMatch != null) {
                 currentSteps.add(stepMatch.groupValues[1].trim())
                 continue
             }
 
             // 匹配验证: - 验证：xxx 或 - 验证: xxx
-            val verifyMatch = Regex("""^-\s*验证[：:]\s*(.+)""").find(trimmed)
+            val verifyMatch = VERIFY_REGEX.find(trimmed)
             if (verifyMatch != null) {
                 currentVerifications.add(verifyMatch.groupValues[1].trim())
                 continue

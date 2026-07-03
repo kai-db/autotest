@@ -56,17 +56,37 @@ abstract class TestCase : BaseUiTest() {
 
         logger.i("TestCase", "═══ $name ═══")
 
+        var primary: Throwable? = null
         try {
             before?.invoke(this)
 
             val s = scenario(name, reportCollector, interceptors, steps)
             s.run()
+        } catch (e: Throwable) {
+            primary = e
+            throw e
         } finally {
             try {
                 after?.invoke(this)
             } catch (e: Throwable) {
                 logger.e("TestCase", "after 执行失败: ${e.message}")
+                resolveAfterFailure(primary, e)?.let { throw it }
             }
         }
+    }
+
+    companion object {
+        /**
+         * E2 异常保真：after 失败不再静默吞掉（脏状态会传染后续用例），同时不掩盖主失败根因。
+         * - 主流程已失败：after 异常 addSuppressed 附加到主失败（正在传播中），返回 null 不另抛
+         * - 主流程成功：after 异常就是测试失败，返回它由调用方抛出（对齐 JUnit @After 语义）
+         */
+        internal fun resolveAfterFailure(primary: Throwable?, afterError: Throwable): Throwable? =
+            if (primary != null) {
+                primary.addSuppressed(afterError)
+                null
+            } else {
+                afterError
+            }
     }
 }

@@ -6,6 +6,7 @@ import com.autotest.selector.SelfHealingLocator
 import com.autotest.selector.toSelectorSpec
 import com.autotest.util.scrollDown
 import com.autotest.util.scrollUp
+import com.autotest.util.waitForApp
 import com.autotest.util.waitForText
 
 /**
@@ -37,7 +38,7 @@ class UiReplayExecutor(
                 }
             }
             CachedActionType.ASSERT_VISIBLE -> findTarget(step)
-            CachedActionType.SLEEP -> Thread.sleep(step.payload?.toLongOrNull() ?: 1000)
+            CachedActionType.SLEEP -> Thread.sleep(parseSleepMs(step.payload, step.name))
         }
     }
 
@@ -55,6 +56,10 @@ class UiReplayExecutor(
     private fun launchApp(packageName: String) {
         requireSafePackage(packageName)
         device.executeShellCommand("monkey -p $packageName -c android.intent.category.LAUNCHER 1")
+        // E6：monkey 异步拉起，不等前台就走后续步骤会撞在闪屏/启动动画上——等到前台才算启动成功
+        check(device.waitForApp(packageName, LAUNCH_WAIT_MS)) {
+            "LAUNCH_APP 后 ${LAUNCH_WAIT_MS}ms 内 $packageName 未到前台"
+        }
         logger?.i("Replay", "启动 App: $packageName")
     }
 
@@ -67,5 +72,19 @@ class UiReplayExecutor(
     private fun requireSafePackage(packageName: String) {
         // 包名会拼进 shell 命令，校验防注入
         require(packageName.matches(Regex("^[a-zA-Z0-9._]+$"))) { "非法包名: $packageName" }
+    }
+
+    companion object {
+        /** LAUNCH_APP 后等待 App 到前台的超时（E6） */
+        const val LAUNCH_WAIT_MS = 10_000L
+
+        /**
+         * SLEEP payload 解析（E6）：非法/缺失 payload 不再静默回退 1000ms（缓存数据坏了应该暴露，
+         * 而不是拿默认值把回放时序悄悄改掉）——显式失败该步骤。抽为纯函数便于 JVM 单测。
+         */
+        internal fun parseSleepMs(payload: String?, stepName: String): Long =
+            requireNotNull(payload?.toLongOrNull()?.takeIf { it >= 0 }) {
+                "SLEEP 步骤 payload 非法（需非负毫秒数，实际=$payload）: $stepName"
+            }
     }
 }

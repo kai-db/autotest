@@ -2,6 +2,36 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.8.1] - 2026-07-03
+
+> 主题：07-02 审计遗漏的静默缺口清扫（C3 + E1/E2/E3/E6 + Q4）。patch 版号但含少量行为收紧，见 Changed。
+> 任务记录：`docs/implementation/2026-07-02-optimize-framework-integrate-debox/`。
+
+### Fixed / Hardened
+- **C3 选择器契约**：`byText(...) and byTextContains(...)` 等同属性多条件组合原来必抛
+  `IllegalStateException`（BySelector 同属性二次 set），现每属性取首个 Leaf 驱动查找、
+  完整 conjunction 后置过滤兜底（不丢条件），`tryFind/tryElement`「不抛」契约恢复
+- **E1**：`TestLifecycleManager` hook 异常不再空 catch 静默吞——经注入 logger 留痕（phase + hook 类名 + 异常摘要）
+- **E3**：`BaseActivityTest.tearDown` 加 `::scenario.isInitialized` 守卫，不再用
+  UninitializedPropertyAccessException 掩盖 setUp 原始异常
+- **E6 留痕**：ScreenshotRule 目录创建/takeScreenshot 失败告警（证据链断裂可见）；
+  ReportCollector 根因分析失败降级留痕
+- **Q4**：REGEX 选择器构造期编译校验 + 缓存复用（matchLeaf/BySelector 转换不再逐次编译）；
+  TestCaseParser 4 个正则提 object 级常量（原 per-line 重建）
+
+### Changed（行为收紧，接入方注意）
+- **E2**：`TestCase.execute` 的 after 失败不再被吞——主流程成功时 after 异常 = 测试失败；
+  主流程已失败时 addSuppressed 附加（根因不漂移）
+- **E6-SLEEP**：回放 SLEEP 步骤 payload 缺失/非数字/负数 → 步骤显式失败（原静默回退 1000ms）
+- **E6-LAUNCH_APP**：回放 LAUNCH_APP 后 10s 内 App 未到前台 → 步骤失败（原发完 monkey 即过）
+- **Q4**：非法 REGEX pattern 在选择器**构造处**抛 IllegalArgumentException（原定位执行时才抛）
+
+### Deferred（正式记录，此前为无人认领的静默缺口）
+- Q2 指纹库增量写、Q3 计时统一 elapsedRealtime（21 处，宜独立任务）、Q8 叠层弹窗连关
+
+### Stats
+- 311 条单元测试（+16）/ 19 个模块 / main 约 5790 行
+
 ## [1.8.0] - 2026-07-02
 
 > 主题：质量 / 可测性收尾（审计 P2 + 延后项）。minor 版号——含 public API 演进。

@@ -37,6 +37,9 @@ class ReportCollector : TestWatcher() {
     /** 根因分析时的包名过滤（ANR 判定用），由 BaseUiTest 注入 */
     var rootCausePackage: String? = null
 
+    /** 留痕通道（E6）：内部降级（如根因分析失败）必须可见；由 BaseUiTest 注入 */
+    var logger: com.autotest.log.TestLogger? = null
+
     override fun starting(description: Description) {
         startTime = System.currentTimeMillis()
     }
@@ -47,7 +50,9 @@ class ReportCollector : TestWatcher() {
         val rootCause = try {
             logcatProvider?.invoke()?.let { com.autotest.diagnosis.LogcatAnalyzer.analyze(it, rootCausePackage) }
         } catch (ex: Throwable) {
-            null // 根因分析失败不能影响失败记录本身（logcat 不可得时降级为无根因）
+            // 根因分析失败不能影响失败记录本身（logcat 不可得时降级为无根因），但降级必须留痕（E6）
+            logger?.w("Report", "根因分析失败，降级为无根因: ${ex.javaClass.simpleName}: ${ex.message}")
+            null
         }
         failures.add(
             Failure(

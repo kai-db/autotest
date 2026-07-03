@@ -17,7 +17,20 @@ enum class AttrType { TEXT, RES_ID, DESC, CLASS_NAME }
  */
 sealed class SelectorSpec {
 
-    data class Leaf(val attr: AttrType, val mode: MatchMode, val value: String) : SelectorSpec()
+    data class Leaf(val attr: AttrType, val mode: MatchMode, val value: String) : SelectorSpec() {
+        /**
+         * REGEX 预编译（Q4）：构造期 fail-fast——非法 pattern 在选择器**声明处**抛 IllegalArgumentException
+         * （而非定位执行时才炸在设备上），同时热路径（matchLeaf / BySelector 转换）复用编译结果。
+         */
+        @Transient
+        internal val pattern: java.util.regex.Pattern? = if (mode == MatchMode.REGEX) {
+            try {
+                java.util.regex.Pattern.compile(value)
+            } catch (e: java.util.regex.PatternSyntaxException) {
+                throw IllegalArgumentException("非法正则选择器: \"$value\"（${e.description}）", e)
+            }
+        } else null
+    }
 
     /** 非：仅允许包裹叶子条件（避免 De Morgan 展开复杂度，够用且语义清晰） */
     data class Not(val leaf: Leaf) : SelectorSpec()
@@ -53,7 +66,7 @@ sealed class SelectorSpec {
             MatchMode.EXACT -> actual == value
             MatchMode.CONTAINS -> actual.contains(value)
             MatchMode.STARTS_WITH -> actual.startsWith(value)
-            MatchMode.REGEX -> Regex(value).matches(actual)
+            MatchMode.REGEX -> pattern!!.matcher(actual).matches() // 构造期已编译缓存（Q4）
         }
     }
 

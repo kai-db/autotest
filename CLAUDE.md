@@ -19,10 +19,11 @@ com.autotest
 ├── intercept/     双链拦截器：watcher 观察 + behavior 失败恢复（6 种内置）
 ├── lifecycle/     TestLifecycleHook + Manager（测试生命周期钩子）
 ├── log/           TestLogger + DefaultTestLogger（统一日志：分级+文件+Logcat）
-├── report/        RunReport + HtmlReporter（AI 断言/自愈事件/根因独立 section）
+├── report/        RunReport + ReportCollector + ReportWriter + HtmlReporter（AI 断言/自愈/守卫/根因独立 section）
 ├── runner/        RunnerInfo + DeviceSelector（设备信息）
+├── safety/        DangerousOpsGuard 危险操作点击网关（铁律#7 代码层：fail-closed 阻断+截图留证+词表配置注入）
 ├── selector/      复合选择器 DSL + 指纹自愈 + 三级降级定位（SelfHealingLocator）
-├── stability/     FlakyClassifier 规则链 + AdaptiveRetryPolicy + TestHistoryStore
+├── stability/     FlakyClassifierApi + DefaultFlakyClassifier（规则构造注入）+ AdaptiveRetryPolicy + TestHistoryStore
 └── util/          EspressoExt + UiAutomatorExt + WaitUtil + ScreenshotRule + TestArtifacts
 ```
 

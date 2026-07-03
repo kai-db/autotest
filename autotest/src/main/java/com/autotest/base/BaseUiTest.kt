@@ -152,6 +152,10 @@ abstract class BaseUiTest {
         // 清理旧产物防无限堆积；指纹库是跨 run 持久资产，护住不被按数量清掉（B3）
         TestArtifacts.cleanup(File(TestConfig.screenshotDir), protectedNames = setOf("fingerprints.json"))
         interceptors.logger = logger
+        // E1/E6 留痕通道：logger 就绪后统一注入（与 interceptors.logger 同模式）
+        lifecycle.logger = logger
+        screenshotRule.logger = logger
+        reportCollector.logger = logger
         // 危险操作守卫（铁律#7 代码层）：注册到全局供扩展函数入口取用；关闭时留审计事件，不允许静默
         if (TestConfig.safetyEnabled) {
             com.autotest.safety.GuardRegistry.current = guard

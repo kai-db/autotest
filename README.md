@@ -2,7 +2,7 @@
 
 可复用的 Android 自动化测试框架，基于 **Espresso + UiAutomator**，配合 **Claude Code + mobile-mcp** 实现 AI 驱动的测试。
 
-**v1.8.0** | 19 个模块 | 295 条单元测试 | AAR 发布至 mavenLocal
+**v1.8.1** | 19 个模块 | 311 条单元测试 | AAR 发布至 mavenLocal
 
 > v1.7 新增：危险操作点击网关（safety 包，铁律#7 代码层）、StepContext 证据隔离、
 > 集成坑 POM 根治（hamcrest/protobuf-lite/sourcesJar）、存储信任边界与自愈链加固。
@@ -27,8 +27,30 @@ cd autotest
 allprojects { repositories { mavenLocal() } }
 
 // app/build.gradle
-androidTestImplementation 'com.autotest:autotest:1.8.0'
+androidTestImplementation 'com.autotest:autotest:1.8.1'
 ```
+
+> 只用 `androidTestImplementation`：框架只进测试 APK，绝不进生产包。
+> 建议像 debox 一样用 gradle.properties 开关（如 `autotest.enabled=true` 才加依赖）gate 住，
+> 并用 `mavenLocal { content { includeGroup 'com.autotest' } } }` 限定仓库只服务本坐标。
+
+### 接入方 runner 配置（通用）
+
+```groovy
+// app/build.gradle → android.defaultConfig
+testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+```
+
+- 测试类继承 `com.autotest.base.BaseUiTest`（或 `TestCase`），配置经 androidTest 的
+  `assets/test-config.properties` 注入（至少 `app.packageName=<被测包名>`）。
+- **包名注意**：`app.packageName` 填**运行时实际 applicationId**——debug 变体带
+  `applicationIdSuffix`（如 `.test`）时要写含后缀的值。
+- 跨进程测外部 App（黑盒模式）需在 androidTest 的 manifest 声明 `<queries>` 对应包名。
+- 定向执行单个测试类：
+  `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<FQCN>`，
+  或 `adb shell am instrument -w -e class <FQCN> <testApkAppId>/androidx.test.runner.AndroidJUnitRunner`
+  （test APK 的实际组件名用 `adb shell pm list instrumentation` 核验，勿硬编码猜测）。
+- espresso/hamcrest/protobuf-lite 冲突已在框架 POM 侧根治（v1.7.x），接入方无需手动 exclude。
 
 ---
 
@@ -330,4 +352,4 @@ flakySafely(
 
 ## 版本
 
-当前版本 `1.8.0`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
+当前版本 `1.8.1`。修改 `autotest/build.gradle` 中的 `LIB_VERSION`，重新 `publishToMavenLocal` 发布。
