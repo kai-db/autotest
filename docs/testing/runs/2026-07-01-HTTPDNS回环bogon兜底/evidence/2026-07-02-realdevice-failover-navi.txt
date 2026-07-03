@@ -1,0 +1,36 @@
+# 真机 failover 端到端(S25 RFCYA0F9SSZ,证书修复后)  2026-07-02
+# 方法:非 root 真机,config-swap JIM_NAVI_SERVER_*=wss://127.0.0.1(死主/回环) + <备用>,重建 debug APK install -r 冷启抓 JuggleIM WS 日志
+
+## 基线(原配置,健康)
+  servers is [wss://ws.debox.pro, wss://ws.dbxsocial.com] → onOpen → ConnConnectedState
+
+## 测试1 · wss 备用: servers is [wss://127.0.0.1, wss://ws.dbxsocial.com]
+  onClose code 1002, reason: Invalid status code received: 400 Status line: HTTP/1.1 400 Bad Request
+  → websocket fail → ConnWaitingForConnectState → reconnect timer(循环,IM 从不 onOpen)
+  判定:failover 机制有效(备用被尝试),但 ws.dbxsocial.com 对 JuggleIM WS 握手返回 400 → 备用端点不可用
+
+## 测试2 · https 备用(按用户指示): servers is [wss://127.0.0.1, https://ws.dbxsocial.com]
+  onClose code -1, reason: unknown scheme: https   ← JuggleIM 直接拒绝 https scheme(只认 ws/wss)
+  同轮实锤死主: onClose code -1, reason: failed to connect to /127.0.0.1 (port 443) ... ECONNREFUSED
+  → 证明测试1 的 400 来自 ws.dbxsocial.com(回环只会 ECONNREFUSED,给不出 HTTP 400)
+
+## 复原(原配置包装回)
+  servers is [wss://ws.debox.pro, wss://ws.dbxsocial.com] → onOpen → ConnConnectedState(IM 恢复,无残留)
+
+===================================================================
+# 复测 · 运维配好 WS 路由后  2026-07-02 ~10:45(GREEN,P0-C3 闭环)
+===================================================================
+
+## /im 路径 WS 握手探测(变绿判据,curl HTTP/1.1)
+  ws.debox.pro/im      → HTTP/1.1 101 Switching Protocols (Sec-WebSocket-Accept 正确)
+  ws.dbxsocial.com/im  → HTTP/1.1 101 Switching Protocols (之前 app 打 /im 是 400 → 运维已修 WS 路由)
+  (JuggleIM 源码 JWebSocket.WEB_SOCKET_SUFFIX="/im" → 实际连 wss://<navi>/im)
+
+## 真机完整 app 复测(死主+真备)
+  servers is [wss://127.0.0.1, wss://ws.dbxsocial.com]
+  onOpen → ConnConnectedState → user connect   ✅ 无 400、无 reconnect 循环
+  判定:主(回环 ECONNREFUSED)不可 onOpen → onOpen 必来自 ws.dbxsocial.com（按消去法闭环）
+  注:ss 快照到 43.168.20.116(debox.pro)是 HTTP API 流量,非 IM WS,不作反证
+
+## 复原(原配置包装回)
+  servers is [wss://ws.debox.pro, wss://ws.dbxsocial.com] → onOpen → ConnConnectedState(IM 恢复,无残留)

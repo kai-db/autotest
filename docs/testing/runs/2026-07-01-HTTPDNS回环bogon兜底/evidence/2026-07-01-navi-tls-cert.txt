@@ -1,0 +1,50 @@
+# 备用 navi ws.dbxsocial.com TLS 证书根因取证  2026-07-01(晚)
+# 采集环境:Mac(Clash Verge TUN + fake-ip 198.18.x)走代理用域名 + 设备侧真实 DNS
+
+## 设备侧真实 DNS(手机自网络,绕 Mac fake-ip 代理)
+--- S25 RFCYA0F9SSZ ---
+PING ws.dbxsocial.com.eo.dnse5.com (43.174.224.118) 56(84) bytes of data.
+PING ws.debox.pro.eo.dnse5.com (43.168.20.116) 56(84) bytes of data.
+
+## 主 ws.debox.pro TLS(基线,证书 OK)
+* ALPN: curl offers h2,http/1.1
+* SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+*  subject: CN=*.debox.pro
+*  subjectAltName: host "ws.debox.pro" matched cert's "*.debox.pro"
+*  issuer: C=CN; O=Aliyun Computing Co, Ltd.; CN=Aliyun RSA TLS DV G1
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://ws.debox.pro/
+* [HTTP/2] [1] [:method: GET]
+
+## 备 ws.dbxsocial.com TLS(证书不匹配)
+* SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+*  subject: CN=*.cdn.myqcloud.com
+*  subjectAltName does not match host name ws.dbxsocial.com
+* SSL: no alternative certificate subject name matches target host name 'ws.dbxsocial.com'
+
+## 备 ws.dbxsocial.com.eo.dnse5.com TLS(换写法同样不匹配)
+* SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+*  subject: CN=*.cdn.myqcloud.com
+*  subjectAltName does not match host name ws.dbxsocial.com.eo.dnse5.com
+* SSL: no alternative certificate subject name matches target host name 'ws.dbxsocial.com.eo.dnse5.com'
+
+===================================================================
+# 复测追加 · 证书已生效  2026-07-01 22:08:47(累计第 9 次复测)
+===================================================================
+
+## 备 ws.dbxsocial.com TLS —— 已生效 ✅(裸域名)
+* SSL connection using TLSv1.3 / AEAD-AES256-GCM-SHA384 / [blank] / UNDEF
+*  subject: CN=*.dbxsocial.com
+*  start date: Mar 26 00:00:00 2026 GMT
+*  expire date: Oct 10 23:59:59 2026 GMT
+*  subjectAltName: host "ws.dbxsocial.com" matched cert's "*.dbxsocial.com"
+*  issuer: C=CN; O=Aliyun Computing Co, Ltd.; CN=Aliyun RSA TLS DV G1
+< HTTP/2 200 
+
+## 备 ws.dbxsocial.com.eo.dnse5.com 变体 —— 仍失败 ❌(内部 CNAME 目标形式,不能当 navi 用)
+*  subject: CN=*.cdn.myqcloud.com
+*  subjectAltName does not match host name ws.dbxsocial.com.eo.dnse5.com
+* SSL: no alternative certificate subject name matches target host name 'ws.dbxsocial.com.eo.dnse5.com'
+
+## 设备侧真实解析(S25)
+PING ws.dbxsocial.com.eo.dnse5.com (43.174.225.117) 56(84) bytes of data.
