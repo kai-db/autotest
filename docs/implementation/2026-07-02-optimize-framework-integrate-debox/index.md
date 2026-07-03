@@ -37,14 +37,14 @@
 
 - Current Status: done（代码/文档收口；debox 端到端冒烟待外部环境补跑）
 - Final VERDICT: PASS（plan R1-R3 FAIL→R4 PASS；impl R1 PASS 零 finding）
-- Latest summary: 三工作流全部落地。**WS-A1** autotest v1.8.1：修 6 项审计遗漏静默缺口（C3 选择器不抛契约 / E1 生命周期 hook 留痕 / E2 after 异常保真 addSuppressed / E3 isInitialized 守卫 / E6 四处静默显式化 / Q4 REGEX 构造期 fail-fast+缓存），Q2/Q3/Q8 补正式延后记录消除"无人认领"；311 单测全过 + 护栏 + publishToMavenLocal；Codex impl-review PASS 零 Critical/Important。**WS-A2** docs 全对齐 1.8.1（CLAUDE.md/01/03/04/09/10/README/CHANGELOG，漂移逐条 grep 清零，docs/09 整篇修订）。**WS-B** debox 接入升 1.8.1：develop base + release base（用户指令新开 `kai/autotest-1.8.1-regression` 做发版门禁）两条线接入均**健康**（双 APK 构建通过、classpath 1.8.1 无 protobuf-lite），端到端冒烟受外部环境（真机出口 IP 触发 DeBox 地域弹窗 + release 时真机锁屏）阻断，非接入缺陷。
+- Latest summary: 三工作流全部落地。**WS-A1** autotest v1.8.1：修 6 项审计遗漏静默缺口（C3 选择器不抛契约 / E1 生命周期 hook 留痕 / E2 after 异常保真 addSuppressed / E3 isInitialized 守卫 / E6 四处静默显式化 / Q4 REGEX 构造期 fail-fast+缓存），Q2/Q3/Q8 补正式延后记录消除"无人认领"；311 单测全过 + 护栏 + publishToMavenLocal；Codex impl-review PASS 零 Critical/Important。**WS-A2** docs 全对齐 1.8.1（CLAUDE.md/01/03/04/09/10/README/CHANGELOG，漂移逐条 grep 清零，docs/09 整篇修订）。**WS-B** debox 接入升 1.8.1：develop base + release base（用户指令新开 `kai/autotest-1.8.1-regression` 做发版门禁）接入均健康；**release base 真机端到端冒烟已跑绿**（S25 `DeBoxSmokeTest` OK (1 test)、5/5 步骤全过）——用户确认「IP 不在服务范围」弹窗无害后，`DeBoxBaseTest` 加关无害弹窗前置，preflight 命中登录，端到端闭环。
 
 ## Final Outcome
 
-Status: done（外部环境依赖项转为 Follow-up）
-Summary: 用户诉求「框架/文档/逻辑/代码优化 + debox 接入」全部交付。框架侧 v1.8.1 清扫审计遗漏缺口并双 gate 通过；文档层消除全部 v1.8 漂移；debox 接入在 develop/release 两 base 验证健康。唯一未闭合 = debox 真机端到端冒烟 PASS，卡在两个白名单外部项（真机首解 + 网络进服务区），代码/接入侧无缺陷。
+Status: done（含 debox 真机端到端跑绿）
+Summary: 用户诉求「框架/文档/逻辑/代码优化 + debox 接入」全部交付。框架侧 v1.8.1 清扫审计遗漏缺口并双 gate 通过；文档层消除全部 v1.8 漂移；debox 接入在 develop/release 两 base 验证健康，**release 发版线真机端到端冒烟 `DeBoxSmokeTest` OK (1 test) 5/5 全过**（加关无害地域弹窗前置后 preflight 命中登录）。全链闭环，代码/接入侧无缺陷。
 Follow-up:
-1. **debox 真机端到端补跑**（外部环境就绪后）：①真机解锁 ②网络落进 DeBox 服务区 → 定向跑 DeBoxSmokeTest 至全绿（develop 与 release 两 base 各一次）。同时闭合 Codex 两条 Verification Gaps（C3 后置过滤 + LAUNCH_APP waitForApp 真机验证）。
+1. **端到端已跑绿**（release base，S25，2026-07-03 10:57）：`DeBoxSmokeTest` 5/5 全过。Codex 两条 Verification Gaps（C3 后置过滤 + LAUNCH_APP waitForApp）中，chip 交互步骤（自愈定位点『群组』→ 复位）已在真机走通；LAUNCH_APP waitForApp 走 launchAppAndDismissDialogs 亦真机验证。develop base 端到端可按需另跑（机制同 release，已闭环）。
 2. **两仓改动提交时机**（用户决定）：autotest 仓 v1.8.1 代码+docs（`debox` 分支，未提交）；debox 仓 `kai/autotest-1.8.1-regression`（release base，未提交）。develop base 原改动存 `git stash@{0}` + scratchpad 备份。
 3. **候选 lesson（待用户/Codex 确认后入账本，核心原则 0.2 不擅自写入）**：
    - 项目（autotest）候选：「审计提案项必须要么实施要么显式记延后——既未实施也无延后记录 = 无人认领的静默缺口，会在后续审视才被发现」（本次 C3/E/Q 即此类）。
