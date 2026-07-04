@@ -77,6 +77,7 @@ abstract class BaseUiTest {
             ),
             logger = logger,
             evidenceCapture = { prefix ->
+                // 墙钟：截图文件名唯一性（人读时间可溯），勿改单调钟
                 val file = File(TestConfig.screenshotDir, "${prefix}_${System.currentTimeMillis()}.png")
                 val parent = file.parentFile
                 if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -125,6 +126,7 @@ abstract class BaseUiTest {
     protected open fun createAiAssertionEvaluator(): AiAssertionEvaluator? = null
 
     private fun captureForAiAssert(): String? = try {
+        // 墙钟：截图文件名唯一性，勿改单调钟
         val file = File(TestConfig.screenshotDir, "ai_assert_${System.currentTimeMillis()}.png")
         file.parentFile?.mkdirs()
         if (device.takeScreenshot(file)) file.absolutePath else null
@@ -206,7 +208,7 @@ abstract class BaseUiTest {
             val runnerInfo = RunnerInfo.collect(TestConfig.packageName)
             val report = reportCollector.buildReport(
                 appPackage = TestConfig.packageName,
-                endTime = System.currentTimeMillis(),
+                endTime = System.currentTimeMillis(), // 墙钟 epoch：RunReport.endTime 展示语义，勿改单调钟
                 device = runnerInfo.deviceName,
                 runnerInfo = runnerInfo
             )

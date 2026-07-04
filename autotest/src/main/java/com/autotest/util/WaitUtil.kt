@@ -31,9 +31,9 @@ object WaitUtil {
         intervalMillis: Long = 500,
         condition: () -> Boolean
     ) {
-        val startTime = System.currentTimeMillis()
+        val startTime = MonotonicTime.nowMs()
         while (!condition()) {
-            if (System.currentTimeMillis() - startTime > timeoutMillis) {
+            if (MonotonicTime.nowMs() - startTime > timeoutMillis) {
                 throw AssertionError("等待超时 (${timeoutMillis}ms)")
             }
             Thread.sleep(intervalMillis)

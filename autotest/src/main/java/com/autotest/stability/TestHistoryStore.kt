@@ -38,6 +38,7 @@ class TestHistoryStore(
     private val entries: MutableMap<String, CaseHistory> by lazy { load() }
 
     /** 记录一次执行结果（每次「尝试」都记，重试的每一轮是独立样本） */
+    // nowMs 默认墙钟：持久化历史时间戳（跨进程/重启可读），勿改单调钟
     fun record(caseId: String, passed: Boolean, nowMs: Long = System.currentTimeMillis()) {
         val prev = entries[caseId] ?: CaseHistory()
         entries[caseId] = CaseHistory(

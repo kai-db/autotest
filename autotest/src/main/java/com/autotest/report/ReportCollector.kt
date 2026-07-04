@@ -41,7 +41,7 @@ class ReportCollector : TestWatcher() {
     var logger: com.autotest.log.TestLogger? = null
 
     override fun starting(description: Description) {
-        startTime = System.currentTimeMillis()
+        startTime = System.currentTimeMillis() // 墙钟 epoch：RunReport.startTime 展示语义（HtmlReporter 按 Date 格式化），勿改单调钟
     }
 
     public override fun failed(e: Throwable?, description: Description) {
@@ -76,7 +76,7 @@ class ReportCollector : TestWatcher() {
 
     fun buildReport(
         appPackage: String,
-        endTime: Long = System.currentTimeMillis(),
+        endTime: Long = System.currentTimeMillis(), // 墙钟 epoch：RunReport.endTime 展示语义，勿改单调钟
         device: String? = null,
         runnerInfo: com.autotest.runner.RunnerInfo? = null
     ): RunReport {

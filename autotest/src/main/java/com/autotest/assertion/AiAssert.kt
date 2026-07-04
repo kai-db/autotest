@@ -39,7 +39,7 @@ class AiAsserter(
 ) {
 
     fun assertWithAi(description: String, optional: Boolean = true) {
-        val now = System.currentTimeMillis()
+        val now = System.currentTimeMillis() // 墙钟：AiAssertion 报告展示时间戳（人读），勿改单调钟
 
         if (evaluator == null) {
             record(AiAssertion(description, AiVerdict.SKIPPED, "未注入 AiAssertionEvaluator（确定性执行模式），断言未评估", optional, now))

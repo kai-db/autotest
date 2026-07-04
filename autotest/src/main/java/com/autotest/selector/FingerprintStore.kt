@@ -42,6 +42,7 @@ class FingerprintStore(
      * 记录一次**权威**定位（L1 原始 selector 确定性命中）：写 provisional=false。
      * 权威指纹是「原始 selector 真的匹配到该元素」的可信证据，可覆盖此前的 provisional（转正）。
      */
+    // nowMs 默认墙钟：写入持久化 lastSeenMs（跨进程/重启做 TTL 比对），勿改单调钟（重启归零）
     fun record(selectorKey: String, snapshot: ElementSnapshot, nowMs: Long = System.currentTimeMillis()) {
         val prev = entries[selectorKey]
         entries[selectorKey] = ElementFingerprint(
@@ -59,6 +60,7 @@ class FingerprintStore(
      * - 若已有**权威**指纹 → **不降级覆盖**（权威 > 暂定）。
      * - provisional 永不因「自身快照又被命中」自动转正——只有 [record]（L1）才转正。
      */
+    // nowMs 默认墙钟：同 record，持久化 lastSeenMs 语义
     fun recordProvisional(selectorKey: String, snapshot: ElementSnapshot, nowMs: Long = System.currentTimeMillis()) {
         val prev = entries[selectorKey]
         if (prev != null && !prev.provisional) {

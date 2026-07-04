@@ -1,6 +1,7 @@
 package com.autotest.intercept
 
 import com.autotest.log.TestLogger
+import com.autotest.util.MonotonicTime
 
 /**
  * 拦截器链，管理多个拦截器的注册和触发。
@@ -132,10 +133,10 @@ class InterceptorChain {
      */
     fun <T> intercept(actionName: String, details: String = "", action: () -> T): T {
         fireBeforeAction(actionName, details)
-        val start = System.currentTimeMillis()
+        val start = MonotonicTime.nowMs()
         return try {
             val result = action()
-            fireAfterAction(actionName, System.currentTimeMillis() - start)
+            fireAfterAction(actionName, MonotonicTime.nowMs() - start)
             result
         } catch (e: Throwable) {
             fireOnActionFailure(actionName, e)

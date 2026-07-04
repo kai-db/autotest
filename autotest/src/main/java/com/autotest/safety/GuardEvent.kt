@@ -30,5 +30,6 @@ data class GuardEvent(
     val matchedWord: String? = null,
     /** 命中时刻截图路径（阻断时尽力采集） */
     val screenshotPath: String? = null,
+    /** 墙钟 epoch：报告展示时间戳（人读），勿改单调钟 */
     val timestampMs: Long = System.currentTimeMillis()
 )

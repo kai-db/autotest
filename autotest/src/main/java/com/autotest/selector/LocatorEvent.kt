@@ -27,5 +27,6 @@ data class LocatorEvent(
     val resolved: String,
     /** 自愈置信度（HEALED 时有值） */
     val confidence: Double? = null,
+    /** 墙钟 epoch：报告展示时间戳（人读），勿改单调钟 */
     val timestampMs: Long = System.currentTimeMillis()
 )

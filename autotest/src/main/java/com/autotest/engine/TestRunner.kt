@@ -12,6 +12,7 @@ import com.autotest.report.ReportWriter
 import com.autotest.report.RunReport
 import com.autotest.report.StepResult
 import com.autotest.runner.RunnerInfo
+import com.autotest.util.MonotonicTime
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,12 +60,13 @@ class TestRunner(
         after: (() -> Unit)? = null,
         steps: com.autotest.dsl.ScenarioBuilder.() -> Unit
     ): TestCaseResult {
+        // 墙钟 epoch：RunReport.startTime 展示语义（HtmlReporter 按 Date 格式化），勿改单调钟
         if (suiteStartTime == 0L) suiteStartTime = System.currentTimeMillis()
         logger.i("TestRunner", "═══ 开始用例: $name ═══")
         lifecycle.fireBeforeTest(name)
 
         val collector = ReportCollector()
-        val startTime = System.currentTimeMillis()
+        val startTime = MonotonicTime.nowMs()
         var error: Throwable? = null
         // 归类 primary failure 来源（Q7）：envReset/before=INFRA（环境没准备好），Scenario 步骤=ASSERTION（用例真失败）
         var failureKind = FailureKind.NONE
@@ -114,7 +116,7 @@ class TestRunner(
             lifecycle.fireAfterTestFinally(name)
         }
 
-        val duration = System.currentTimeMillis() - startTime
+        val duration = MonotonicTime.nowMs() - startTime
         val passed = error == null
         val status = if (passed) "PASS" else "FAIL"
 
@@ -145,7 +147,7 @@ class TestRunner(
         return RunReport(
             appPackage = appPackage,
             startTime = suiteStartTime,
-            endTime = System.currentTimeMillis(),
+            endTime = System.currentTimeMillis(), // 墙钟 epoch：RunReport.endTime 展示语义，勿改单调钟
             steps = allSteps,
             summary = ReportSummary.from(allSteps)
         )

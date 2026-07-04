@@ -2,6 +2,26 @@
 
 所有重要变更记录。格式遵循 [Keep a Changelog](https://keepachangelog.com/)。
 
+## [1.8.2] - 2026-07-04
+
+> 主题：审计延后项 Q3——时长/超时计时统一单调钟，墙钟跳变（NTP 同步/手动调时）不再影响超时判定。
+> 任务记录：`docs/implementation/2026-07-04-01-unify-monotonic-timing/`。
+
+### Added
+- **`util/MonotonicTime`**：框架统一单调时间源。默认源运行时探测——Android=`SystemClock.elapsedRealtime()`
+  （计 deep sleep，对所有入口生效）、JVM 单测=`System.nanoTime()` 回退；对外仅 `nowMs()`，
+  假钟注入口为 `internal overrideSourceForTest/resetForTest`（AAR 外部不可及）。
+- 假钟单测 12 条：MonotonicTime 探测/注入/复位、flakySafely 冻结不假超时·跳变走最后尝试、
+  waitUntil 超时判定、InterceptorChain/Scenario/TestRunner durationMs 精确等于假钟步进。
+
+### Changed
+- **A 组 11 处控制流计时改单调钟**：`WaitUtil.waitUntil`、`flakySafely` 重试窗口、
+  `InterceptorChain.intercept` 动作耗时、`Scenario` step 耗时、`TestRunner` 用例耗时。
+  durationMs 数值语义（ms）不变；墙钟跳变场景由「超时判定错乱」变为「不受影响」。
+- **B 组 14 处墙钟显式保留并逐处注释语义**（持久化 TTL/历史、报告展示时间戳、截图文件名）：
+  `FingerprintStore`/`SelfHealingLocator`/`TestHistoryStore`/`LocatorEvent`/`GuardEvent`/
+  `AiAssert`/`ReportCollector`/`TestRunner` suite 区间/`BaseUiTest`。RunReport JSON schema 不变。
+
 ## [1.8.1] - 2026-07-03
 
 > 主题：07-02 审计遗漏的静默缺口清扫（C3 + E1/E2/E3/E6 + Q4）。patch 版号但含少量行为收紧，见 Changed。

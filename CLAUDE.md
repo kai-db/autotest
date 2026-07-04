@@ -24,7 +24,7 @@ com.autotest
 ├── safety/        DangerousOpsGuard 危险操作点击网关（铁律#7 代码层：fail-closed 阻断+截图留证+词表配置注入）
 ├── selector/      复合选择器 DSL + 指纹自愈 + 三级降级定位（SelfHealingLocator）
 ├── stability/     FlakyClassifierApi + DefaultFlakyClassifier（规则构造注入）+ AdaptiveRetryPolicy + TestHistoryStore
-└── util/          EspressoExt + UiAutomatorExt + WaitUtil + ScreenshotRule + TestArtifacts
+└── util/          EspressoExt + UiAutomatorExt + WaitUtil + MonotonicTime（单调计时源）+ ScreenshotRule + TestArtifacts
 ```
 
 > AI 驱动相关机制（缓存回放/自愈/软断言/历史重试）的使用方式见 `docs/09-AI驱动测试机制.md`。

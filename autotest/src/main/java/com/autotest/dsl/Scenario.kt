@@ -9,6 +9,7 @@ import com.autotest.stability.RetryBudget
 import com.autotest.stability.StepRetryBudgetHolder
 import com.autotest.stability.DefaultFlakyClassifier
 import com.autotest.stability.FlakyClassifierApi
+import com.autotest.util.MonotonicTime
 import java.util.concurrent.atomic.AtomicLong
 
 class Scenario(
@@ -29,7 +30,7 @@ class Scenario(
                 runId = runId,
                 attempt = attempt
             )
-            val start = System.currentTimeMillis()
+            val start = MonotonicTime.nowMs()
 
             interceptors?.fireBeforeStep(ctx)
 
@@ -45,7 +46,7 @@ class Scenario(
                     onRetry = { if (budget.tryConsume()) { attempt++; true } else false },
                     action = { step.run() }
                 ) ?: step.run()
-                val duration = System.currentTimeMillis() - start
+                val duration = MonotonicTime.nowMs() - start
                 ctx = ctx.copy(attempt = attempt)
 
                 interceptors?.fireAfterStep(ctx, duration)
@@ -61,7 +62,7 @@ class Scenario(
                     )
                 )
             } catch (e: Throwable) {
-                val duration = System.currentTimeMillis() - start
+                val duration = MonotonicTime.nowMs() - start
                 ctx = ctx.copy(attempt = attempt)
 
                 interceptors?.fireOnStepFailure(ctx, e)

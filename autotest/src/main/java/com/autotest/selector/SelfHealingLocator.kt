@@ -131,6 +131,7 @@ class SelfHealingLocator(
     private fun isExpired(fp: com.autotest.selector.ElementFingerprint, now: Long): Boolean =
         fp.lastSeenMs > 0 && now - fp.lastSeenMs > PROVISIONAL_TTL_MS
 
+    // 墙钟：与持久化 lastSeenMs（FingerprintStore）比对 TTL，必须同源墙钟，勿改单调钟
     private fun nowMs(): Long = System.currentTimeMillis()
 
     /** 查找并点击（过危险操作守卫） */

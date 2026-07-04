@@ -1,5 +1,7 @@
 package com.autotest.stability
 
+import com.autotest.util.MonotonicTime
+
 /**
  * 全局 Flaky 安全包装器。
  * 参考 Kaspresso flakySafely 设计，在任意代码块上自动重试。
@@ -31,10 +33,10 @@ fun <T> flakySafely(
     failureMessage: String? = null,
     action: () -> T
 ): T {
-    val startTime = System.currentTimeMillis()
+    val startTime = MonotonicTime.nowMs()
     var lastError: Throwable? = null
 
-    while (System.currentTimeMillis() - startTime < timeoutMs) {
+    while (MonotonicTime.nowMs() - startTime < timeoutMs) {
         try {
             return action()
         } catch (e: Throwable) {
