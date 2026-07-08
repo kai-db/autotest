@@ -11,6 +11,7 @@ app-knowledge/
 ├── README.md            本文件（规范）
 ├── dangerous-ops.md     危险操作清单（点击前必须比对，见 TEST_GUIDE 铁律）
 ├── devices.md           设备清单/能力矩阵/已知噪声（选设备前必读，见 TEST_GUIDE 七）
+├── dapp-sign-testing.md DApp/签名黑盒测试入口（ProviderTestActivity + 本地 dApp + Web3 桥）
 └── screens/             页面知识，每页一个文件
     ├── _template.md     页面模板
     └── <ScreenName>.md  如 HomeScreen.md / WalletScreen.md
