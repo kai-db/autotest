@@ -1,7 +1,11 @@
 # LiveRoomScreen（语音房）
 
 > 进入路径：消息主页右上「+」→「**发起直播**」（2026-07-11 核实：菜单项已由「创建语音房」改名，点入后页面标题仍是「创建语音房」；表单=主题≥2字符+预约时间/谁能加入/公开Live 开关，测试房建议关「公开Live」避免公开发布）；
-> 或房间分享深链 `https://s.debox.pro/live?id=<roomId>` → 落地页「Open DeBox APP」→ 弹窗「现在加入」。
+> 或房间分享深链（2026-07-11 实测真实格式）`https://m.debox.pro/live?id=<shortId>&inviter=<uid>`
+> （host 为 `m.` 不是 `s.`）→ 落地页「Open DeBox APP」→ 弹窗「现在加入」。
+> ⚠️ **adb 不能自动化两机深链进房**：App 未注册 `m.debox.pro` 的 App-Links（manifest 仅 `<queries>`
+> 包可见性），`am start -a VIEW -d https://…` 会落 Chrome 不进 App；分享靠 web 落地页手点「Open App」桥。
+> 两机进房用例需人工点链接，或改测同状态机的主持人侧断网重连（真机 S1/S3 已等价覆盖）。
 > 首次建房权限链：App 自绘「权限申请（录音）」弹窗【开启】→ 系统录音权限【仅在使用该应用时允许】。
 > 实现类型：原生（resource-id 稳定可用）。最后核实：2026-07-11（Zego 会话恢复真机冒烟）
 
