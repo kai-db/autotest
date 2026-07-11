@@ -110,7 +110,16 @@ ServiceRecord{... io.debox.call.ForegroundNotificationService}
 | 3 | TC-T-002 反复断网/恢复（简化 ×2 episode） | ✅ PASS | 两次独立 episode（冷启 ×2）链路均完整收敛、无弹窗堆积、零 FATAL、最终 MainActivity 在线 |
 
 **BUG-001 状态：已修复并设备实证闭环**（P0-1/P0-2/P0-3 全达成）。
-**BUG-002 状态：已立项记录待修**（Zego FGS 生命周期竞态，偶发 1/2，独立于本轮 4 commit——建议另立任务：关房 stop 前对「已 startForegroundService 未 startForeground」的服务先补 startForeground 再 stop，或延迟 stop 到服务自报 foreground 后）。
+**BUG-002 状态：已修复并设备实证闭环**（debox `2026-07-11-05-fix-fgs-close-race`，plan R2 PASS + impl R1 PASS）。
+真根因比初判更进一步：`ChatRoomManager.quit()` 先 stopService，`ZegoManager.cleanupAfterLogout()`
+的 cleanupStep("foregroundService") 随后**无条件复活**已停服务——常态残留 LIVE 型 FGS+常驻通知
+（实机证据：无房态下 `types=0x82` 服务在跑 + 服务端 `-2008 用户已在live房间中` 伴生，导致无法建新房），
+竞态下义务未履约触发 FATAL。修复 = cleanup 增加 `restartForegroundService` 显式参数（受控重进
+=true / 终局退房=false，编译期定值零 TOCTOU；Codex R1 否决过 `isServiceRunning()` gate 方案）。
+修复包（sha256 `49de4398…`）回归：正常关房 + 长断网(≥60s)重连后立即关房 ×3 + 断网期间服务存续，
+全部零 FATAL、进程零重启、每次关房出现 `skip foregroundService restart (terminal logout)` 日志、
+无 LIVE 型残留（仅设计内 BACKGROUND 保活 `types=0x2`）。附带清理了服务端残留房 `g4tbxete`
+（恢复弹窗进房→正常关闭），`-2008` 建房阻塞随之消失。
 
 ## 观察项（OBS，非阻断）
 
