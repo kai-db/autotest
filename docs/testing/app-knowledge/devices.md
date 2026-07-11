@@ -39,6 +39,20 @@
 - 登录态快照：模拟器完成登录（含验证码）后打 AVD snapshot（命名 `logged-in-<env>`，如 `logged-in-testenv`）；恢复后必做健康基线（时间同步/网络可达/IM onOpen），不健康才重登。
 - `debox_root` 注入复原：`iptables -t nat -F OUTPUT`、杀宿主 DNS 响应器、装回原始包、冷启验证 DNS 非回环（07-01 复原清单）。
 
+## ⚠️⚠️ emulator 多账号风险（2026-07-11 事故教训，每轮开测必核身份）
+
+- **debox_root（emulator-5554）App 内登录了 3 个账号**：测试号 `2309b9ea`（$0）+ **用户真实账号 Kai**（Lv.11/856粉丝/真实资产）+ **真实账号 赵长鸟**（Lv.5/416粉丝）。「我的」页顶部「切换账号」弹层可互切。
+- **事故**：2026-07-11 UI 自动化坐标盲点误触切换，前台变成真实账号 Kai/赵长鸟，并误入「账号详情」页（导出助记词/私钥/移除账号俱在）。已安全切回，真实账号零操作。
+- **铁律**：① 每轮开测先到「我的」页**核实名字=测试号**（5554=`2309b9ea`，5556=`10b92305`）；② **页面跳转后必须重新截图/取元素再点击，禁止用旧坐标盲点**；③ 「切换账号」弹层内行尾编辑按钮（ivEditWallet）= 账号详情危险页，勿碰。
+- **GeeGuard 补充观察**：07-11 下午本轮 debox_root 上 App（16fa94f6 build）**全程正常运行**——07-10 记录的「root 必退 System.exit -5」非必现（疑与 adb root 附加状态相关），用前实测冷启为准。
+
+## ⚠️ 两机联测需同后端环境（2026-07-11 晚，语音房两机深链实证）
+
+- **每个 App 安装实例按 `DomainManager` 持久化域名**（加密 SP/MMKV，adb 读不到明文，看实际 HTTP `current_host` 为准）。两机若不同环境**无法共处同一语音房**（跨环境查房 `liveroom/info` 返 `-2213 DB系统繁忙`）。
+- **切环境入口**：`am start -n com.tm.security.wallet/com.currency.wallet.mine.activity.SettingAdminActivity`（debug 包 shell 可直起，非 exported 也行）→ 列表点「开发环境」(`t.debox.pro`)/「正式环境」(`debox.pro`)/「域名池:…」行 → 弹「App必须重启」→确定 relaunch。**只 setCacheHttp+resetUrl+relaunch，不清 token/钱包数据**（不走会清 token 的 switchChain 分支）；切后该账号在新环境是全新身份（无数据、走新用户引导页，跳过即可），**原环境数据保留、切回即恢复**。
+- **当前设备环境状态（2026-07-11 晚）**：**5554 已切到测试环境 `t.debox.pro`**（为两机联测，2309b9ea 测试环境 Lv.1 空号；真实号 Kai/赵长鸟 数据在生产待切回恢复）；5556 本就在 `t.debox.pro`。两机现同环境，可两机联测。**测试完若要恢复 5554 真实号正常显示，需切回「域名池: dbxsocial.com」或「正式环境」**。
+- **深链进房（两机 TC-F）**：`adb -s <听众机> shell am start -a android.intent.action.VIEW -d "debox://open/share?type=live\&id=<roomId>"` → 弹「现在加入」→ 进房（详见 LiveRoomScreen.md）。
+
 ## ⚠️⚠️ 真机 run-as 写限制（2026-07-11 事故教训，务必先验）
 
 - **三星 SM-S9210 (Knox) 的 SELinux 禁止 `run-as` 写 app 数据**：`runas_app` 域可**读**（backup 成功）但**不可写**（restore 失败，连新建文件都 `Permission denied`，即使 uid+SELinux categories 匹配）。模拟器无此限制（restore 正常）。

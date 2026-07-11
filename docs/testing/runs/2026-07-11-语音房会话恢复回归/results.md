@@ -69,6 +69,35 @@
 
 ---
 
+## 追加：两机 BLOCKED 用例全部解锁并跑通（2026-07-11 晚，两轮迭代）
+
+> **最终结论：原 4 条 BLOCKED（TC-F-001/002/003/005）全部 ✅ PASS——真机两机语音房实测，零 FATAL、零 1002001/1002033。**
+> 两个突破：① 深链自动化机制打通（推翻旧「adb 不能深链」）；② 用户把 5554 切到测试环境，两机同环境后成功同房。
+
+### 突破 1：深链机制（推翻旧 BLOCKED 归因）
+App 注册了自定义 scheme 接收器 `debox://open/share`（MainActivity intent-filter，**非** https App-Links）。
+`adb am start -a android.intent.action.VIEW -d "debox://open/share?type=live&id=<roomId>"` 直接进 App
+→ 触发 `liveroom/info` → 弹「现在加入」。旧记「必须 https App-Links / 手点 Open App」是错的。
+
+### 突破 2：同环境（消除跨后端阻塞）
+中途发现两测试号跨环境（`2309b9ea`→dbxsocial 生产 / `10b92305`→t.debox.pro 测试），10b92305 查生产房
+持续 `-2213`。**用户授权后 autotest 把 5554 经 SettingAdminActivity「开发环境」切到 `t.debox.pro`**
+（只切环境、不清数据/不登出；2309b9ea 测试环境下 Lv.1 全新身份、真实号 Kai/赵长鸟 数据保留待切回恢复）。
+两机同走 `t.debox.pro` 后：
+
+| # | 用例 | 结果 | 关键证据（房 `n7r4kxz9`，2309b9ea 主持 + 10b92305 听众） |
+|---|------|------|------|
+| TC-F-001 | 听众深链进房 | ✅ **PASS** | 5556 深链 → 弹窗「现在加入」→ 进房：`space_join route=CDN streams=1 → im chatroom joined → Idle→LoggingIn→LoggedIn gen=1 → login_ok → add_stream route=CDN`；主持人侧人数「2」、麦位显示主持人+听众两人 |
+| TC-F-002 | 主持人断网重连（听众在场） | ✅ **PASS** | 5554 断网 15s：`LoggedIn→Reconnecting(1002051)` → 恢复 `reconnected clear+resync route=RTC → Reconnecting→LoggedIn gen=1（不换代）→ join_skip AlreadyActive`（幂等无 1002001），听众全程在场，零 FATAL |
+| TC-F-003 | 听众断网重连 | ✅ **PASS** | 5556 断网 15s：`LoggedIn→Reconnecting(1002051)` → 恢复 `Reconnecting→LoggedIn gen=1 → reconnected resync route=CDN → join_skip AlreadyActive`，零 FATAL |
+| TC-F-005 | 上麦/下麦 remote sync | ✅ **PASS** | 听众点✋申请上麦 `apply_mic success` → 测试环境自动通过、角色变**发言人**（主持人侧 UI 同步）；发言人开麦 `mic_on:1` → 主持人 5554 收 `onIMRecvCustomCommand MIC_ON{mic_on:true}` → 两侧 `mute_mic reason=remote_sync`；关房前听众声浪动画可见。零 FATAL |
+
+关房：主持人「...」→关闭语音房，`LoggingOut→Idle gen=2` 干净，两机零 FATAL。
+
+> **知识库回写**：`LiveRoomScreen.md`（深链机制 + 同环境前置）；`devices.md`（两机联测需同环境 + 5554 已切测试环境状态）；
+> `dangerous-ops.md`（环境切换=授权可做，但只切不清数据）。
+> **遗留**：5554 当前在**测试环境**（为两机联测切的），其真实号 Kai/赵长鸟 数据在生产环境待切回恢复——见文末环境状态。
+
 ## Bug 记录
 
 （本轮无 FAIL、无 Critical/Important 缺陷。OBS-4 / OBS-5 若产品侧确认为缺陷，另建 agent-dev-loop

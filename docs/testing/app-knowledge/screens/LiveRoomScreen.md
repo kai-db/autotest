@@ -3,9 +3,15 @@
 > 进入路径：消息主页右上「+」→「**发起直播**」（2026-07-11 核实：菜单项已由「创建语音房」改名，点入后页面标题仍是「创建语音房」；表单=主题≥2字符+预约时间/谁能加入/公开Live 开关，测试房建议关「公开Live」避免公开发布）；
 > 或房间分享深链（2026-07-11 实测真实格式）`https://m.debox.pro/live?id=<shortId>&inviter=<uid>`
 > （host 为 `m.` 不是 `s.`）→ 落地页「Open DeBox APP」→ 弹窗「现在加入」。
-> ⚠️ **adb 不能自动化两机深链进房**：App 未注册 `m.debox.pro` 的 App-Links（manifest 仅 `<queries>`
-> 包可见性），`am start -a VIEW -d https://…` 会落 Chrome 不进 App；分享靠 web 落地页手点「Open App」桥。
-> 两机进房用例需人工点链接，或改测同状态机的主持人侧断网重连（真机 S1/S3 已等价覆盖）。
+> ✅ **深链自动化已打通（2026-07-11 更新，推翻旧「adb 不能自动化」结论）**：App **有**注册自定义
+> scheme 接收器 `debox://open/share`（MainActivity intent-filter，host=open path=/share，见 debox
+> `AndroidManifest.xml`），落地页 JS 也是拼 `debox://open/share?type=live&id=<roomId>` 唤起 App。
+> **adb 直接可驱动**：`adb -s <serial> shell am start -a android.intent.action.VIEW -d "debox://open/share?type=live\&id=<roomId>"`
+> → 进 App → 触发 `liveroom/info` 查询 → 成功则弹「现在加入」。**旧「必须走 https App-Links / 手点 Open App」是错的**——
+> https(`m.debox.pro`) 确实没注册（落 Chrome），但自定义 scheme 注册了且 adb 可拉起。
+> ⚠️ **两机同房真正的前置**：两个测试号必须在**同一后端环境**。实测 `2309b9ea`(5554) 走
+> `dbxsocial.com`（生产）、`10b92305`(5556) 走 `t.debox.pro`（测试环境，HTTPDNS 收窄域名）→ **跨环境，
+> 10b92305 查生产房 `liveroom/info` 持续 `-2213 DB系统繁忙`**，深链到位也进不去。需一对同环境测试号才能两机联测（见 network-domain.md）。
 > 首次建房权限链：App 自绘「权限申请（录音）」弹窗【开启】→ 系统录音权限【仅在使用该应用时允许】。
 > 实现类型：原生（resource-id 稳定可用）。最后核实：2026-07-11（Zego 会话恢复真机冒烟）
 
@@ -48,6 +54,8 @@
 - **建房表单「公开Live」开关默认开启**（2026-07-11 实测两次均如此）——测试房务必先手动关闭再点「确认」，避免误建公开房（危险操作清单「发布内容」类）
 - 主持人关房链：「...」→「关闭语音房」→ 弹窗「你想结束这个语音房并停止录音吗？」→「确定」（主持人菜单是「关闭语音房」不是「离开语音房」）
 
+- 房内聊天列表由 imKit `MessageViewModel` 驱动（ChatRoomActivity），断网发送**长期转圈不落失败态**、重连自动补发；要制造带警告图标的失败消息，用 **DM 会话（如 DeBox 官方号）断网发送→发送中杀进程→重启**（2026-07-11 实证）
+- 建房 `/liveroom/create` 偶发 `-2213 DB 系统繁忙`，等 20s 重试即可（自动化需带重试）
 - 返回键/`ivChatBack` 只**缩小为悬浮窗**，不退房；真退房走「...」→ 离开语音房
 - 主持人点发言人头像的管理卡含「移除房间」（踢人，危险，见 dangerous-ops）
 - CDN 听众态：麦位无声浪动画（per-stream soundLevel 抑制）；上麦转 RTC 后声浪恢复

@@ -110,6 +110,12 @@ ServiceRecord{... io.debox.call.ForegroundNotificationService}
 | 3 | TC-T-002 反复断网/恢复（简化 ×2 episode） | ✅ PASS | 两次独立 episode（冷启 ×2）链路均完整收敛、无弹窗堆积、零 FATAL、最终 MainActivity 在线 |
 
 **BUG-001 状态：已修复并设备实证闭环**（P0-1/P0-2/P0-3 全达成）。
+
+> **终态包复证（2026-07-11 晚，dev HEAD `f7a1f799df`）**：在最新验收包上重跑 TC-F-002/003——
+> 断网冷启 6 次重试整齐 → `temp_unavailable code=-100 attempts=6 episode_entry=true next_delay_s=30`
+> → `toast_temp_unavailable` → `token_retry_netcb registered=true`；恢复网络 → `auto_retry` →
+> `check_token ok channel=JC auto=true` → `auto_recovered`，进 MainActivity、无 `login_state_change`、
+> 零 FATAL。**BUG-001 修复在终态包上无回归**（原修复包 `c6926d78`→ 终态 `f7a1f799df` 一致）。
 **BUG-002 状态：已修复并设备实证闭环**（debox `2026-07-11-05-fix-fgs-close-race`，plan R2 PASS + impl R1 PASS）。
 真根因比初判更进一步：`ChatRoomManager.quit()` 先 stopService，`ZegoManager.cleanupAfterLogout()`
 的 cleanupStep("foregroundService") 随后**无条件复活**已停服务——常态残留 LIVE 型 FGS+常驻通知
