@@ -288,3 +288,24 @@ agent-dev-loop 让 Codex 以**只读**身份独立评审 plan 与改动，形成
 3. **危险操作确认**（`dangerous-ops.md` 命中且用例明确要求执行时的最终确认）；
 4. **外部系统修复动作**（运维/后端侧，不属于本测试可自动化范围）；
 5. **secret 注入**（签名口令、API key 等，禁止 AI 索要明文进对话/日志/文档）。
+
+### 7.7 被测包自主构建与安装（AI 自主，非白名单）
+
+> **规范来源**：2026-07-11 实证。此前「用户 AS 打包」是无据的临时做法——打包/安装**不在** §7.6 白名单，按铁律必须 AI 自主。本节固化自主流程，**严格遵循，勿再退回人工打包**。
+
+**debox `:app` debug 包 CLI 自主构建**（RN 0.78 手动集成 + CodePush 的坑，详见 debox `docs/lessons.md` L-BUILD-01）：
+
+1. **补 `react` 扩展 shim**（构建前）：`app/build.gradle` 的 `apply from: codePushGradle` **之前**插入——
+   ```gradle
+   if (project.extensions.findByName("react") == null) {
+       project.extensions.add("react", [debuggableVariants: project.objects.listProperty(String).convention(["appDebug"])])
+   }
+   ```
+   （原因：手动集成未 apply RN 插件 → codepush 读不到 debuggableVariants → 误对 flavored `appDebug` 触发 JS bundle → 撞未注册任务。shim 让 debug 正确跳过 bundling，走 Metro。）
+2. **构建**：`NODE_PATH="$PWD/ReactNative/node_modules" ./gradlew :app:assembleAppDebug`；需 Realm 注入 harness 时加 `:app:assembleAppDebugAndroidTest`（`local.properties` 先设 `autotest.enabled=true`）。
+3. **构建后 `git checkout app/build.gradle` 还原 shim**（只为构建，不入库）。
+4. **安装预检（I-89）**：`apksigner verify --print-certs` 比对新 APK 与已装包签名一致（debug 用 release keystore，通常同签名）+ 新 versionCode ≥ 已装 → `adb install -r`（保留登录/钱包数据）。**签名不符或降级 → 停止报告，绝不 uninstall/清数据**（触犯 §7.6 与危险红线）。
+5. **归因链**：记录源码 HEAD SHA + APK sha256 + versionCode + 签名摘要 + 安装后 `dumpsys package`；版本号可能与线上重号，**用运行时行为探针证「改动确在包内」**（如 PicSel 面包屑 / RealmKey 恢复日志 / 缓存行为）。
+6. **产物校验**：`adb ... am start` 冷启验证进 MainActivity、登录态在、logcat 无 FATAL —— 通过才算被测包就绪。
+
+> CLI 只覆盖 debug；release/上架包仍走正式签名流程。模块级编译/单测（`:im:imKit`/`:business:*`）加 `NODE_PATH` 即可（L18）。
