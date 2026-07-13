@@ -9,14 +9,14 @@ def LIB_ARTIFACT = "autotest"
 def LIB_VERSION = "1.8.2"
 
 android {
-    compileSdk 35
+    compileSdk 37
     namespace 'com.autotest'
 
     defaultConfig {
         minSdk 24
         // 库 AAR 本身不写死 targetSdk，但缺省会让 androidTest APK 取 targetSdk=minSdk=24，
         // 触发系统 DeprecatedTargetSdkVersionDialog 抢焦点、拖垮 instrumented 测试；显式对齐 compileSdk。
-        targetSdk 35
+        targetSdk 37
         buildConfigField "String", "LIB_VERSION", "\"$LIB_VERSION\""
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -51,31 +51,31 @@ android {
 
 dependencies {
     api "junit:junit:4.13.2"
-    api "androidx.test.ext:junit:1.1.5"
-    api "androidx.test:runner:1.5.2"
-    api "androidx.test:rules:1.5.0"
-    api "androidx.test:core:1.5.0"
-    api "androidx.test:core-ktx:1.5.0"
+    api "androidx.test.ext:junit:1.3.0"
+    api "androidx.test:runner:1.7.0"
+    api "androidx.test:rules:1.7.0"
+    api "androidx.test:core:1.7.0"
+    api "androidx.test:core-ktx:1.7.0"
     // 公开 API（EspressoExt/WaitUtil）暴露 org.hamcrest.Matcher，按 Gradle 语义必须自己 api 声明，
     // 否则接入方 exclude/降级 espresso 时 NoClassDefFoundError（G3-hamcrest 教训，框架侧根治）
-    api "org.hamcrest:hamcrest:2.2"
+    api "org.hamcrest:hamcrest:3.0"
     // 旧 protobuf-lite 会与宿主 App 的 protobuf-javalite 冲突（G3-①）。protobuf-lite 有两条传递路径:
     // ① espresso-core 直接传递;② espresso-contrib → accessibility-test-framework → protobuf-lite。
     // 两条都要 exclude(1.7.1 只排了 ①,debox 1.7.2 回归实测 ② 经 espresso-contrib 漏进接入方 runtime classpath)。
     // exclude 写进发布 POM/.module,一处根治所有接入方,无需各自排。
-    api("androidx.test.espresso:espresso-core:3.5.1") {
+    api("androidx.test.espresso:espresso-core:3.7.0") {
         exclude group: 'com.google.protobuf', module: 'protobuf-lite'
     }
-    api "androidx.test.uiautomator:uiautomator:2.3.0"
+    api "androidx.test.uiautomator:uiautomator:2.4.0"
 
-    implementation "com.google.code.gson:gson:2.10.1"
-    implementation("androidx.test.espresso:espresso-contrib:3.5.1") {
+    implementation "com.google.code.gson:gson:2.14.0"
+    implementation("androidx.test.espresso:espresso-contrib:3.7.0") {
         exclude group: 'com.google.protobuf', module: 'protobuf-lite'
     }
-    implementation("androidx.test.espresso:espresso-intents:3.5.1") {
+    implementation("androidx.test.espresso:espresso-intents:3.7.0") {
         exclude group: 'com.google.protobuf', module: 'protobuf-lite'
     }
-    implementation "androidx.test.espresso:espresso-idling-resource:3.5.1"
+    implementation "androidx.test.espresso:espresso-idling-resource:3.7.0"
 }
 
 // 回归护栏(1.7.2 加):验证 resolved androidTest runtime classpath 全无 protobuf-lite——
