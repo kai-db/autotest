@@ -23,8 +23,8 @@
 
 ## Final Status / VERDICT / Outcome（唯一权威）
 
-- Current Status: 深度测试完成（逻辑层）。Zego 声称属实+45单测+静态在包+smoke 通过；独立核码新发现 Z-1(潜在致命线程假设)+Z-2/Z-3(集成缺口)。行为 reconnect 黑盒不可达（需活跃语音房+2账号+RTC）。
-- Final VERDICT: PASS_WITH_ACCEPTED_RISK（逻辑层通过；Z-1~3 集成风险待用户决定修/真机验；行为 reconnect 移交真实语音房环境）
+- Current Status: **完成**。Zego 逻辑层验证通过(声称属实+45单测+静态+smoke);独立核码 Z-1/Z-2/Z-3 全部已修并 committed(debox 3a383cdbc6/559f87b847);字号 trivial 通过。行为 reconnect 移交真实语音房环境(原任务已有真机冒烟 S1/S2/S3)。
+- Final VERDICT: **PASS_WITH_ACCEPTED_RISK**(逻辑层通过;Z-1 线程防御+Z-2/Z-3 FETCH 超时兜底均修+审+committed;残留=LOGGING_IN app 层超时不加(孤儿会话风险)+行为 reconnect 需真实语音房，均登记 Accepted Risk)
 - Summary（latest / final 合一，只写一处）:
 - Follow-up（含未完成验证）:
 
