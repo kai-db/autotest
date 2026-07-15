@@ -47,7 +47,23 @@
 - 上麦申请(N) 列表（主持人端，✓/✗）
 - 你想退出这个语音房吗？（取消/确定）
 - 系统检测到您上次语音房异常退出，是否快速加入？（取消/立即进入）
+  - ⚠️ 点「立即进入」走的是**房间恢复**（`liveroom/info` + `seat`），**不发 `liveroom/join`**
 - 您的IP不在服务范围（知道了）——地域/网络检查，飞行模式切网后易触发
+- **悬浮窗权限**（取消/去开启）——**点 `ivChatBack` 缩小房间时弹**；未授权则无法最小化。
+  授权路径：去开启 → 系统 `OverlaySettingsActivity` → 打开 DeBox 开关 → 返回（`appops get <pkg> SYSTEM_ALERT_WINDOW` 应为 `allow`）
+
+## 🔑 触发「房主直接进房」分支（`JoinSpaceDialogFragment:123-129`，2026-07-14 实证）
+
+该分支条件：`space.status==1（进行中）&& space.creator.user_id == 当前用户` → **直接发 `liveroom/join`**（带 `gee_token`）。
+
+**触发配方**（关键：必须让 App 处于「不在房内、但房间服务端仍进行中」）：
+1. 房主建房（或已有进行中的自己的房），拿到 `roomId`（可从 logcat `"room_id":"xxxx"` 或 `liveroom/v1/<roomId>/seat` 取）；
+2. `am force-stop` 杀进程 → 重启 App；
+3. 冷启动弹「上次语音房异常退出」→ **必须点「取消」**（点「立即进入」走恢复逻辑，不发 join）；
+4. `adb shell am start -a android.intent.action.VIEW -d "debox://open/share?type=live&id=<roomId>"`
+   → 走 `JoinSpaceDialogFragment` → 命中 creator==self 分支 → **发出 `liveroom/join`**。
+
+> ❌ 无效做法：App 已在房内（含最小化悬浮窗态）时深链 → 只会 `liveroom/info`+`seat` 恢复 Activity，**不发 join**。
 
 ## 注意事项
 

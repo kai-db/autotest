@@ -196,7 +196,7 @@ PASS **7**(TC-D-01/03/04 + TC-N-04 + TC-N-09 + MV-32,及 Phase0 装包/建钱包
   - **复原**:装回原配置包 → `servers is [wss://ws.debox.pro, wss://ws.dbxsocial.com]` → `onOpen`,IM 恢复,`local.properties`/apks 产物/设备全还原,无残留、无 FATAL。
   - **根因分层结论(收口)**:① 证书 = 已修复(22:08,`*.dbxsocial.com`);② **新阻断 = WS 路由**:`ws.dbxsocial.com` 的 EdgeOne 站点**能建 TLS 但对 WS 升级返回 400** → 源站不是 JuggleIM WS 网关 / 未开 WS 升级(对照 `ws.debox.pro` 同样 wss 能 onOpen);③ https scheme JuggleIM 不支持。→ **P0-C3 ① 客户端多 navi failover 机制本身健全(实测备用被并发尝试),但工单场景仍救不了,因为备用端点服务端 400**。**修复归属运维/后端**:把 `ws.dbxsocial.com` 的 EdgeOne 源站/路由配成与 `ws.debox.pro` 同一个 JuggleIM WS 网关(开 WS 升级 + 正确 Host/源站),否则备用 navi 对工单**零容灾价值**(主被污染 → IM 卡 reconnect 循环 = 工单本身)。
   - **为何"root 模拟器"这层帮不上**:此处失败是 `ws.dbxsocial.com` **服务端返回 400**(非客户端/DNS 注入问题);root 模拟器只改注入能力,改变不了后端返回,换模拟器会复现同样 400 → 不升级该阶梯。
-  - **🔧 运维待办工单(2026-07-02 已提请通知)**:
+  - **🔧 _运维待办工单(2026-07-02_ 已提请通知)**:
     - **问题**:备用 IM navi `wss://ws.dbxsocial.com` 的 WebSocket 握手被服务端返回 `400 Bad Request`,导致多 navi 容灾对工单(主域名 DNS 污染)无效。
     - **已排除**:TLS 证书已 OK(`*.dbxsocial.com`,阿里云 DV,已生效);客户端 failover 机制正常(实测会去连备用);`https` scheme 客户端不支持(无关)。
     - **需求**:把 `ws.dbxsocial.com` 的 EdgeOne 站点**源站/路由配成与 `ws.debox.pro` 同一个 JuggleIM WS 网关**——开启 **WebSocket 升级**、按正确 Host/源站转发(对照 `ws.debox.pro` 现可正常 `wss` onOpen)。
