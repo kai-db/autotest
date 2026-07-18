@@ -30,7 +30,8 @@
   ├─①【A 先行·探索发现】建 runs/日期-功能/cases.md,AI 黑盒驱动跑
   │     覆盖:主流程 + 边界 + 异常 + 需人类判断/网络注入/跨系统的场景 → results.md
   │
-  ├─②【发现 Bug → agent-dev-loop 修 → A 回归】直到 A 全 PASS
+  ├─②【测完再修·不边测边修】跑的过程中遇 Bug 只用 agent-dev-loop「分析记录模式」登记,
+  │     继续下一条;**全部 case 跑完**才统一进修复模式 → A 全量回归 → 直到全 PASS
   │
   ├─③【筛选沉淀·A→B】从跑过的 case 里,挑「确定性 + 值得每次回归 + 纯 UI 能断言」的,
   │     写成 B 用例(继承 DeBoxBaseTest)纳入回归集。★ 不是全部 case 都 B 化
@@ -123,9 +124,14 @@ AI 会自动：
 2. **确认环境**（Phase 1）：按设备阶梯选设备（默认模拟器，见 0.2 节）→ 设备在线（无则启模拟器）→ 屏幕保活 → 模拟器网络噪声预检 → App 可启动。
 3. **按用例执行**（铁律#2，Phase 2）：`cases.md` 是唯一用例来源，逐条重置 + 截图验证。
 4. **危险操作 pre-action 比对**（铁律#7）：点击前比对 `dangerous-ops.md`，命中先停（钱包不可逆）。
-5. **先记录再修复**（Phase 3）：结果写 `results.md`。
-6. **监工模式**（铁律#3）：长测用 `/loop 5m` 每 5 分钟查执行状态、防卡住。
-7. **探索产物回写知识库**：新发现的元素/弹窗/危险项补进 `app-knowledge/`。
+5. **只测不修，FAIL 不阻塞**（Phase 2 核心）：遇 FAIL 先 ①抓**原始日志线路**（§5.4，过滤原文非摘要）
+   ②按 **A 产品 / B 埋点 / C 判据** 三分类（§5.3，防假阳性去改健康代码；C 类只改 cases.md）
+   ③agent-dev-loop「分析记录模式」建/续任务目录（≤10min，**不 plan、不改代码**），立刻下一条；
+   跑完全部用例才进 Phase 4 统一修。
+6. **先记录再修复**（Phase 3）：本轮全部结果写 `results.md`，附 FAIL 清单 + 任务目录链接。
+7. **监工模式**（铁律#3）：长测用 `/loop 5m` 查进度（第几条/共几条）；单条 >15min 无进展即判
+   `FAIL-超时` 推进下一条。完整防卡死铁则（8 类卡点自动预案）见 `TEST_GUIDE.md` 第五节。
+8. **探索产物回写知识库**：新发现的元素/弹窗/危险项补进 `app-knowledge/`。
 
 > **AI 驱动 = 全程自主（铁律#1），不等人指示每一步**。人工介入只允许白名单五项
 > （`TEST_GUIDE.md` §7.6）：①验证码/短信 ②真机首次解锁 ③危险操作确认
@@ -136,11 +142,18 @@ AI 会自动：
 
 ## 4. 发现 Bug → 修复走 agent-dev-loop（强制，铁律#5）
 
-**分析问题 / 改代码不直接改**，必须走 `agent-dev-loop` skill（Claude 计划/实现 + Codex 只读独立评审闭环）：
-1. 在**被测项目**（debox）建 `docs/implementation/YYYY-MM-DD-动词-对象/`（index/plan/implementation/review 四件）。
+**分析问题 / 改代码不直接改**，必须走 `agent-dev-loop` skill（Claude 计划/实现 + Codex 只读独立评审闭环）。
+**分两种模式，按阶段用，不要混**：
+
+| 模式 | 用在 | 动作 | 产出 |
+|---|---|---|---|
+| **分析记录模式** | Phase 2 / 5 / 6 遇 FAIL | 建任务目录，`index.md` 写 Status=`ANALYZED` + 复现步骤 + 截图/logcat 原始证据 + 初判根因；限时 10min，判不准就写「待 Phase 4 深挖」 | 只有 `index.md`，**零代码改动** |
+| **修复模式** | Phase 4 | 续跑**同一个**任务目录：plan → Codex plan review → 实现 → Codex impl review → Status=`FIXED` | plan/implementation/review + 代码改动 |
+
+1. 在**被测项目**（debox）建 `docs/implementation/YYYY-MM-DD-NN-动词-对象/`（T2 四件：index/plan/implementation/review）。
 2. 写 plan → **Codex plan review**（PASS 才落 Accepted Plan）→ 实现 → **Codex impl review**（无 Critical/unresolved Important 才收尾）→ 回写。
 3. 范例（本次即用它接入框架）：debox `docs/implementation/2026-07-02-integrate-autotest-instrumented/`。
-> 详见 `TEST_GUIDE.md` 第六节。修复完回到 Phase 5 回归、Phase 6 验收。
+> 详见 `TEST_GUIDE.md` 第六节。修完**全部** FAIL 才回到 Phase 5 回归、Phase 6 验收。
 
 ---
 
