@@ -1,0 +1,22 @@
+# 创建钱包复测与删除副作用
+
+日期：2026-07-18，设备 L1
+
+## 创建结果
+
+- 从 `MainActivity` 进入“切换账号 → 添加 → 创建钱包”。
+- 输入授权 PIN `123456`，界面显示英文 `Created successfully`。
+- 选择跳过备份，不读取或记录助记词/私钥。
+- 账号列表出现新建钱包 `Wallet-1`；因此创建主流程成功。
+
+## 删除/状态副作用
+
+- 后续复测过程中，L1 账号列表只剩 `Wallet-1`，当前页面显示 `Empty`。
+- `AccountAuthInjectionHarness#walletMaterialInventory` 复核：L1 `wallet_count=1, mnemonic_present_count=1, private_key_only_count=0, btc_types={}`；此前同设备基线为 `wallet_count=5` 且存在三类 BTC 物料。
+- L2 同时复核仍为 `wallet_count=3`、BTC 三路径各 2，未出现同样变化。
+- 因此记录为 L1 本地账号/钱包状态被额外清理的回归风险，不能把“创建成功”当作完整 PASS。
+
+## 代码定位
+
+- `business/BaseModule/.../AccountUtils.kt` 的 `delete()` 在删除钱包时还会清理当前账号 Session、SessionCache、CacheData、token/IM token，并在钱包列表为空时重启；删除当前钱包的副作用范围需要隔离验证。
+- 当前未修改生产代码，避免在备份未恢复前继续扩大影响。

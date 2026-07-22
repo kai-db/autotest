@@ -1,0 +1,7 @@
+# L2 正常使用阴性观察（探索）
+
+日期：2026-07-18，设备 L2
+
+- 约 45 秒内重复执行首页/消息/发现/我的只读访问、退后台和冷启动。
+- 采样窗口未观察到 `revalidate_episode_start`、`sync_auth_break`、`call_failed`、`LoginOut`、`FATAL EXCEPTION` 或 `ANR in`。
+- 持续时间不足 TC-A-010 要求的 10 分钟，因此仅作为探索证据，不记该 case PASS。

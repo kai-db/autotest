@@ -1,0 +1,20 @@
+采集时间：2026-07-18 14:35-14:49（Asia/Singapore）
+
+设备/环境
+- L1 emulator-5554：Pixel_10_Pro_XL；DeBox 2.15.0 / 21500000；业务请求实测 host=t.debox.pro、appEnv=dev。
+- L2 emulator-5556：debox_root；DeBox 2.15.0 / 21500000；业务请求实测 host=t.debox.pro、appEnv=dev。
+- L3 正式环境设备保持只读，未执行写操作。
+
+账号与钱包基线
+- L1 测试账号 `10b92305`；L2 测试账号 `2309b9ea`；均已通过 UI 核验并可回到“我的”页。
+- L1 5 个本地助记词钱包，BTC Native SegWit/Nested SegWit/Taproot 各 2；L2 3 个本地助记词钱包，
+  BTC 三类各 1；两机 private-key-only=0、TP=0、WalletConnect=0。
+- 不要求零资产；只记数量/类型/掩码 ID，不记录完整地址或任何密钥材料。
+
+自然重验观察
+- L1 切换测试账号后自然走 -2007 重验自动重登；L2 切换测试账号后自然走 -2023 重验自动重登；
+  两机均回到主界面，且无“系统繁忙”或登录失败停滞。
+
+动画稳定性
+- L1/L2 临时禁用系统动画（0/0/0）以避免无障碍 idle 被持续动效阻塞，收尾恢复 1/1/null。
+

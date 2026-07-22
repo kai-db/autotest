@@ -1,0 +1,35 @@
+执行时间：2026-07-18 14:23-14:25 +08:00
+源码：HEAD e0650d2b1386d8a527893f5301fb431f98b55dbe
+构建时工作区指纹（含 test-only AccountAuthInjectionHarness）：d585be4ba92e52be58fbd0ef5e3e956190041fce31a083544487c9c128cf842e
+
+App APK：
+- 路径：app/build/outputs/apk/app/debug/debox-debug.apk
+- SHA-256：061b53f28cace37597919df2926eabe747cacd266f85b934bfe1472bb7d1cdab
+- package：com.tm.security.wallet
+- version：2.15.0 / 21500000
+- signer SHA-256：2ee891687f73bff9b8375d0b41f571d1e080471209ff53465ff4ce30a3c7f4c8
+
+App test APK：
+- 路径：app/build/outputs/apk/androidTest/app/debug/app-app-debug-androidTest.apk
+- SHA-256（首次安装，AutoTest 1.6.0，已作废）：1dadc05da18faf39abd0f60a6bbfe0450333242a55fa9862bf817e5fabb8d5f1
+- SHA-256（当前合并后的 AutoTest 1.8.2 + inventory harness）：7da4fe2b94676de8ff5325d56d0d0a0945f672540d2b5242891ed54c186837d6
+- package：com.tm.security.wallet.test
+- signer 与 App 一致
+
+安装预检：
+- emulator-5554 现装 App：2.15.0 / 21500000；signer 与现场 APK 一致。
+- emulator-5556 现装 App：2.15.0 / 21500000；signer 与现场 APK 一致。
+- 两端不存在 versionCode 降级。
+
+保数据安装：
+- emulator-5554：App install -r Success；test APK install -r Success；run-as 成功。
+- emulator-5556：App install -r Success；test APK install -r Success；run-as 成功。
+- 14:48 重新安装当前合并后的 test APK：两端 `install -r Success`；instrumentation 物料盘点 1/1 OK。
+- 全程未 uninstall、未 pm clear。
+
+BaseModule BTC test APK 已安装到 emulator-5556：
+- package：com.app.business.base.module.test
+- instrumentation：androidx.test.runner.AndroidJUnitRunner
+- install -r Success
+
+CodePush shim：未使用；现有构建配置可直接成功，app/build.gradle 无本轮临时差异。

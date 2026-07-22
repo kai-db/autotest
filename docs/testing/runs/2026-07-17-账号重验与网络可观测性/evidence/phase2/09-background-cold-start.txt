@@ -1,0 +1,21 @@
+# 后台清理/冷启动与实例释放
+
+日期：2026-07-18
+
+## 严格在途清理（L1）
+
+- 启动 `releaseInstanceDuringLogin` instrumentation 后约 6 秒执行 `am force-stop com.tm.security.wallet`，随后显式冷启动 `SplashActivity`。
+- instrumentation 返回 `shortMsg=Process crashed`，原因是被测进程被外部 force-stop，不能据此判定业务失败。
+- 冷启动返回 `Status: ok`、`LaunchState: COLD`、落到 `MainActivity`；清理后的新进程无 `FATAL EXCEPTION`/`ANR`。
+- 该证据覆盖“在途登录 + 后台清理 + 冷启可恢复”，不覆盖十轮连续在途操作。
+
+## 普通冷启动探索
+
+- L1 连续 10 次 force-stop/冷启，PID：19546、19949、20359、20739、21129、21530、21929、22356、22755、23149；每轮进入 `MainActivity`，无 `FATAL EXCEPTION`/`ANR`。
+- L2 1 次 force-stop/冷启，PID：11996；进入 `MainActivity`，账号仍为 `2309b9ea`，无 `FATAL EXCEPTION`/`ANR`。
+- 普通冷启结果不能替代“每轮均在登录在途窗口 force-stop”的十轮严格用例。
+
+## 环境复原
+
+- L1/L2 前台账号恢复为原备份账号。
+- `window_animation_scale=1`、`transition_animation_scale=1`、`animator_duration_scale=null`。

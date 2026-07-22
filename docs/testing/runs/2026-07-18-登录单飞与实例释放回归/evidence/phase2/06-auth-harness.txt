@@ -1,0 +1,11 @@
+执行时间：2026-07-18 15:23-15:26（Asia/Singapore）
+设备：L1 emulator-5554、L2 emulator-5556；当前合并后的 App/test APK
+
+两机 `AccountAuthInjectionHarness` 全类执行：7/7 tests OK，0 failure。
+- -2023、-2018、-2007 各自单次重验均 episode/auto_resign/app_login=1。
+- -2007 burst 8 次均被压成单 episode、单自动重签、单 app_login。
+- repeatSameWallet 8 次均记录 7 次 same-attempt skip，最终 app_login=1。
+- releaseInstanceDuringLogin 与 inventory 正常完成，无 FATAL/ANR。
+
+该证据可直接判定 F-001 PASS；F-002 仍需补充冷启后旧回调零提交的独立观察，不以本 harness 单独放行。
+

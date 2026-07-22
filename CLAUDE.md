@@ -42,10 +42,10 @@ com.autotest
 2. **按用例执行** — `docs/testing/TEST_CASES.md` 是唯一用例来源
 3. **监工模式** — 使用 `/loop 5m` 定时检查测试执行状态，防止 AI 卡住
 4. **最小人工介入** — 人工只允许白名单五项（验证码/真机首次解锁/危险操作确认/外部系统修复/secret 注入，见 `TEST_GUIDE.md` §7.6），其余全部 AI 自主完成
-5. **修复走 agent-dev-loop** — 分析问题/修复代码**不直接改**，必须走 `agent-dev-loop` skill（Claude 计划/实现/修复/记录 + Codex 只读独立 review 闭环）：建 `docs/implementation/YYYY-MM-DD-动词-对象/` 任务目录 → plan → Codex plan review → 实现 → Codex 实现 review → 回写 results.md。修复原则见 `TEST_GUIDE.md` 第三节，闭环步骤见第六节
+5. **修复走 agent-dev-loop** — 分析问题/修复代码**不直接改**，必须走 `agent-dev-loop` skill（**启动方 agent 为 driver** 负责计划/实现/修复/记录，**另一方 agent 为 reviewer** 只读独立 review：从 Claude Code 打开则 Claude driver + Codex reviewer，从 Codex 打开则反之；task 内不换角）：建 `docs/implementation/YYYY-MM-DD-动词-对象/` 任务目录 → plan → reviewer plan review → 实现 → reviewer 实现 review → 回写 results.md。修复原则见 `TEST_GUIDE.md` 第三节，闭环步骤见第六节
 6. **先读知识库** — AI 测试 session 先读 `docs/testing/app-knowledge/`（元素表/弹窗/**危险操作清单**），探索产物回写
 7. **危险操作 pre-action 比对** — 点击前比对 `app-knowledge/dangerous-ops.md`，命中先停（钱包 App 误操作不可逆）；禁止清数据/登出/切环境
-8. **用例由影响面决定** — 写用例前必须做改动影响面分析（`TEST_GUIDE.md` 第八节）：改动清单 → 反查调用方 → 顺查下游依赖 → 共享资源竞争 → 跨端边界 → 受影响功能清单；**分析判定「行为会变」的才建 case**（`调用可达 ≠ 会受影响`，按可达性铺会爆炸）；命中行为屏障（契约不变/被中间层吸收/依赖正交字段）即停止传播并一行写明依据。用例设计本身也走 `agent-dev-loop`（Codex plan review 重点评「覆盖是否有洞」）
+8. **用例由影响面决定** — 写用例前必须做改动影响面分析（`TEST_GUIDE.md` 第八节）：改动清单 → 反查调用方 → 顺查下游依赖 → 共享资源竞争 → 跨端边界 → 受影响功能清单；**分析判定「行为会变」的才建 case**（`调用可达 ≠ 会受影响`，按可达性铺会爆炸）；命中行为屏障（契约不变/被中间层吸收/依赖正交字段）即停止传播并一行写明依据。用例设计本身也走 `agent-dev-loop`（reviewer plan review 重点评「覆盖是否有洞」）
 9. **自我进化（单向棘轮）** — 测试中可自主沉淀与优化，但**收紧/增量自主、放松/削减需批准**：新增 case/危险条目/判据变严/知识库/lessons 可自主；删 case、降优先级、判据变松、放宽 flaky、缩覆盖**必须报批**；铁律本身、Phase 结构、§7.6 白名单、危险红线**即使收紧也只能提议不能自改**。所有进化写入 results.md「本轮进化」节留痕（详见 `TEST_GUIDE.md` 第九节）
 10. **模拟器优先** — 设备按阶梯路由：L1 普通模拟器（默认）→ L2 root 模拟器（注入）→ L3 真机（复核），取最低可行层级；真机不在线不阻塞（详见 `TEST_GUIDE.md` 第七节 + `app-knowledge/devices.md`）
 
@@ -53,7 +53,7 @@ com.autotest
 
 | App | 包名 | 项目路径 | 测试方式 |
 |---|---|---|---|
-| DeBox | `com.tm.security.wallet` | `/Users/xiaochengcheng/StudioProjects/debox-android` | Claude Code + MCP（AI 驱动） |
+| DeBox | `com.tm.security.wallet` | `/Users/xiaochengcheng/StudioProjects/debox-android` | 启动方 agent + MCP（从 Claude Code 打开则 Claude 驱动，从 Codex 打开则 Codex 驱动） |
 
 ## 测试流程
 
@@ -69,7 +69,7 @@ Phase 2: 全量测试（**只测不修**，按 P0→P1→P2 遍历用例，每�
       ③agent-dev-loop「分析记录模式」建/续任务目录（≤10min，**不 plan、不改代码**）
       → 立刻下一条。⛔ 严禁测着测着切进修复
 Phase 3: 更新文档（结果写入 results.md，先记录再修复；统计行由表格生成不手写）
-Phase 4: 全部修复（**走 agent-dev-loop**：续跑任务目录 → plan → Codex review → 实现 → Codex review → 回写）
+Phase 4: 全部修复（**走 agent-dev-loop**：续跑任务目录 → plan → reviewer review → 实现 → reviewer review → 回写）
   └── 修完**全部** FAIL 才进 Phase 5，不修一个跑一次
 Phase 5: 分层回归（必跑 P0 + 受影响面 + 历史 FAIL 过的；无关 P2 可标 ⏸️-分层延后）
   └── 仍有 FAIL → 回到 Phase 3

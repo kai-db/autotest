@@ -1,0 +1,26 @@
+采集时间：2026-07-18 14:35-14:49（Asia/Singapore）
+
+设备/环境
+- L1 emulator-5554：Pixel_10_Pro_XL；DeBox 2.15.0 / 21500000；业务请求实测 host=t.debox.pro、appEnv=dev。
+- L2 emulator-5556：debox_root；DeBox 2.15.0 / 21500000；业务请求实测 host=t.debox.pro、appEnv=dev。
+- L3 正式环境设备保持只读，未执行写操作。
+
+账号归一化（只记录掩码 ID）
+- L1 通过“我的 → 切换账号”核验并保留测试账号 `10b92305`；自然触发 `revalidate_episode_start code=-2007`、
+  `revalidate_auto_resign code=-2007`，随后 `app_login ok channel=JC`，页面回到“我的”。
+- L2 通过同一路径核验并切换到测试账号 `2309b9ea`；自然触发 `revalidate_episode_start code=-2023`、
+  `revalidate_auto_resign code=-2023`，随后 `app_login ok channel=JC`，页面显示该测试账号。
+- 两次均未点击行尾编辑按钮，未进入账号详情，未导出/读取/截图任何密钥或完整地址。
+
+只读钱包物料盘点（test-only instrumentation，固定汇总字段）
+- L1：wallet_count=5；mnemonic_present_count=5；private_key_only_count=0；resources={local=5}；
+  btc_types={Native SegWit=2, Nested SegWit=2, Taproot=2, solana=5, tron=5}。
+- L2：wallet_count=3；mnemonic_present_count=3；private_key_only_count=0；resources={local=3}；
+  btc_types={Native SegWit=1, Nested SegWit=1, Taproot=1, solana=3, tron=3}。
+- TP/WC 测试物料：L1/L2 均未发现（因此 TP/WC 专用用例按 cases.md 记 BLOCKED；不阻塞本地/BTC用例）。
+- 盘点只计算“字段是否存在”和类型数量，不输出地址、助记词、私钥、token、签名。
+
+动画稳定性
+- L1/L2 原值 window/transition/animator 为 1/1/null；Phase 1 临时设为 0/0/0 以避免持续动效阻塞无障碍 idle。
+- 该设置仅用于测试稳定性，未改 App 数据、账号、钱包或环境；测试结束需恢复原值。
+

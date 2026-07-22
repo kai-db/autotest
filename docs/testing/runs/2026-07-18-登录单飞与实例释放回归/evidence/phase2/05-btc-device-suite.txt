@@ -1,0 +1,10 @@
+执行时间：2026-07-18 15:03（Asia/Singapore）
+设备：L2 emulator-5556
+测试 APK：`business/BaseModule/build/outputs/apk/androidTest/debug/BaseModule-debug-androidTest.apk`
+SHA-256：97a0ef0f458ccf1bdbadca63fcfaf9118055be2a2d804cadeb3fe8f800ea63db
+
+三组真实 androidTest 已在当前合并源码上执行：10 条，0 failure；静态 PSBT 能力与派生/签名/回调基线均 PASS。
+唯一 BLOCKED 是 `builderBranch_doesNotRewriteGivenInputs_PENDING_REGTEST` 的明确 Assume：缺 Bitcoin Core regtest 独立 oracle；不伪造该 oracle。
+
+首次旧 APK 结果已作废（header 断言与当前源码不一致）；重建/重装后 `BtcMessageSignCompatTest#signatureHeaders_agreeOnCompressedFlag` 单测 PASS，随后全套 10 条复跑通过。
+

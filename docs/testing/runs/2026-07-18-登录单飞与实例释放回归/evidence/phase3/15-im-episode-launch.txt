@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.tm.security.wallet/com.currency.wallet.app.SplashActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.tm.security.wallet/com.currency.wallet.main.activity.MainActivity
+TotalTime: 9459
+WaitTime: 9462
+Complete

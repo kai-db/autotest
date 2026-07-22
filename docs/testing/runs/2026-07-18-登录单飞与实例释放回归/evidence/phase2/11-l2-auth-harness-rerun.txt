@@ -1,0 +1,8 @@
+# L2 账号重验/单飞/实例释放 harness 重跑
+
+日期：2026-07-18，设备 L2
+
+- `AccountAuthInjectionHarness` 全量 7 tests：`OK (7 tests)`，0 failure，runner 正常结束。
+- 覆盖 `needAgainLoginOnce`、`accountValidaOnce`、`tokenOverdueOnce`、`releaseInstanceDuringLogin`、`walletMaterialInventory`、`repeatSameWallet`、`tokenOverdueBurst`。
+- `repeatSameWallet` 注入 count=8；`tokenOverdueBurst` 注入 count=8；物料盘点为 wallet_count=3、mnemonic_present_count=3、private_key_only_count=0、BTC 三路径各 2。
+- logcat 未出现 `FATAL EXCEPTION` 或 `ANR in`。

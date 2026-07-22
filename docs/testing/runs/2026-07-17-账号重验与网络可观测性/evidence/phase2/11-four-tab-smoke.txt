@@ -1,0 +1,7 @@
+# 四 Tab 只读冒烟
+
+日期：2026-07-18，设备 L1
+
+- 稳定账号 `10b92305` 状态下依次点击首页、消息、发现、我的，随后退后台并冷启动。
+- 每页等待约 3 秒，仅做只读浏览；未进入转账、签名、购买、SPACE 创建或账号删除入口。
+- 本轮 logcat 未出现 `FATAL EXCEPTION`、`ANR in`、`InputDispatcher`、`sync_auth_break`；冷启动回到 `MainActivity`。

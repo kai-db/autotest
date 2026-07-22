@@ -1,0 +1,24 @@
+采集时间：2026-07-18（Asia/Singapore）
+仓库：/Users/xiaochengcheng/StudioProjects/debox-android
+分支：dev
+HEAD：e0650d2b1386d8a527893f5301fb431f98b55dbe
+测试范围：b8fd28ddffca966c4cd9ff3b97e6dd1c1107e51f（包含）至当前 HEAD，并包含采集时全部未提交改动。
+
+提交范围：b8fd28ddff、7eca437361、c7b17ad2d2、daf8572ffa、4c220cf8a5、c17a24ce6b、023d0319c4、c27bf78f54、35af53ce63、e0650d2b13。
+
+当前 G3/G4/G5、登录单飞、后台签名、鉴权熔断和实例释放修复已经包含在 c27bf78f54；不再把它们误记为“未提交改动”。
+
+采集时未提交生产外改动：
+- business/BaseModule/build.gradle
+- config.gradle
+- 登录链路实施/评审文档与 docs/lessons.md
+- BaseModule BTC JS↔Native 派生、消息签名、PSBT 能力 androidTest 及其 oracle/vector
+- BTC JS→Native 分析文档
+
+未提交文件明细见同 run 的 00-source-baseline 原始清单（7 月 17 日 run）；工作区 diff 指纹：
+723e8403639f9d27217a4b660e4c4680f988a0332ec74aa3406a890e161cf5a2
+
+构建前追加 test-only AccountAuthInjectionHarness 后指纹：
+d585be4ba92e52be58fbd0ef5e3e956190041fce31a083544487c9c128cf842e
+
+旧文档规模（仅作背景，不沿用旧结论）：cases.md 148 行；原先无 results.md。

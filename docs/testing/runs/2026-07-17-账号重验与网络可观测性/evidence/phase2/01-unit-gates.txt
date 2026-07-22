@@ -1,0 +1,26 @@
+执行时间：2026-07-18 14:20-14:22 +08:00
+
+AutoTest（本轮以 --rerun-tasks 强制重跑）：
+- testDebugUnitTest：323 tests / 0 failures / 0 errors
+- testReleaseUnitTest：323 tests / 0 failures / 0 errors
+- compileReleaseKotlin：PASS
+- publishToMavenLocal：PASS
+
+DeBox selected JVM gates：
+- BaseBusiness 网络/认证世代：28 tests / 0 failures / 0 errors
+  AuthTokenStore 5；StaleAuthFlow 7；StaleAuthGuard 4；NetworkCallTrace 4；NetEventListenerSanitize 7；TraceIntegration 1。
+- BaseModule 登录/BTC/熔断：48 tests / 0 failures / 0 errors
+  LoginAttemptCoordinator 21；BtcDerivationAggregator 12；AuthSyncBreaker 7；CacheServiceBatchKey 3；AppLoginFailurePolicy 5。
+- moduleMain 重验状态机：14 tests / 0 failures / 0 errors
+  AccountRevalidationGate 8；RevalidationReshowPolicy 6。
+- imKit episode：2 tests / 0 failures / 0 errors。
+- selected DeBox 合计：92 tests / 0 failures / 0 errors。
+
+编译/测试 APK门禁：
+- BaseBusiness、BaseModule、moduleMain、imKit debug Kotlin 编译：PASS。
+- app AccountAuthInjectionHarness androidTest Kotlin 编译：PASS（修改后已二次编译）。
+- BaseModule debug androidTest APK 构建：PASS。
+- BaseModule test APK SHA-256：6bbd49a9145dc5f081d183089307a6527b70d2a252e475cd93bf5c5df42bb6e4。
+
+说明：构建存在项目既有的 deprecated/flatDir/resource 格式警告，但无编译错误或测试失败。本文件不代表 BTC 设备 androidTest 已执行；设备执行结果归 TC-D-001。
+

@@ -1,0 +1,8 @@
+# L2 四 Tab / 冷启动只读复测
+
+日期：2026-07-18，设备 L2
+
+- force-stop 后冷启动返回 `LaunchState: COLD`、`MainActivity`。
+- 依次执行首页、消息、发现、我的只读点击，再退后台并冷启动。
+- 最终仍为 `MainActivity`，IM 出现 `jim_status connected`；无 `FATAL EXCEPTION`、`ANR in` 或 Input dispatch timeout。
+- logcat 有 4 条 `NO_INPUT_CHANNEL` 触摸丢弃 warning，发生在页面切换/进程重启窗口，不作为崩溃或 ANR。

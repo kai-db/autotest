@@ -1,0 +1,19 @@
+执行时间：2026-07-18 14:20-14:22 +08:00
+
+本轮新执行（不沿用 Gradle UP-TO-DATE 结果）：
+- AutoTest Debug：323 / 0 failures / 0 errors。
+- AutoTest Release：323 / 0 failures / 0 errors。
+- DeBox 网络/认证世代：28 / 0 / 0。
+- DeBox 登录协调器/BTC 聚合器/鉴权熔断：48 / 0 / 0；其中 BaseModule 使用 --rerun-tasks 强制重跑。
+- DeBox 重验门禁/重弹策略：14 / 0 / 0。
+- DeBox IM episode：2 / 0 / 0。
+- DeBox selected 合计：92 / 0 / 0。
+
+构建：AutoTest 发布 mavenLocal PASS；四个生产模块 debug Kotlin PASS；AccountAuthInjectionHarness 编译 PASS；BaseModule BTC androidTest APK 构建 PASS。
+
+BaseModule test APK：
+- business/BaseModule/build/outputs/apk/androidTest/debug/BaseModule-debug-androidTest.apk
+- SHA-256 6bbd49a9145dc5f081d183089307a6527b70d2a252e475cd93bf5c5df42bb6e4
+
+边界：这里只证明确定性 JVM 契约与 test APK 可构建；F-001/F-002 的生产接线、F-004/F-005 的真实失效、F-007/T-004 的 BTC 设备执行仍须按 cases 独立跑。
+

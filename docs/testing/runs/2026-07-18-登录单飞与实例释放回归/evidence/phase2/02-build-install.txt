@@ -1,0 +1,17 @@
+执行时间：2026-07-18 14:23-14:25 +08:00
+HEAD：e0650d2b1386d8a527893f5301fb431f98b55dbe
+工作区指纹（含 test-only harness）：d585be4ba92e52be58fbd0ef5e3e956190041fce31a083544487c9c128cf842e
+
+共同被测 App APK：
+- SHA-256 061b53f28cace37597919df2926eabe747cacd266f85b934bfe1472bb7d1cdab
+- com.tm.security.wallet 2.15.0 / 21500000
+- signer SHA-256 2ee891687f73bff9b8375d0b41f571d1e080471209ff53465ff4ce30a3c7f4c8
+
+App test APK（首次安装，AutoTest 1.6.0，已作废）：SHA-256 1dadc05da18faf39abd0f60a6bbfe0450333242a55fa9862bf817e5fabb8d5f1；同 signer。
+当前合并后的 AutoTest 1.8.2 + inventory harness：SHA-256 7da4fe2b94676de8ff5325d56d0d0a0945f672540d2b5242891ed54c186837d6；同 signer。
+
+emulator-5554 / emulator-5556 预检均为同 versionCode、同 signer；App 与 test APK 均以 install -r 安装成功，run-as 成功。没有卸载、清数据或降级。
+
+BaseModule BTC test APK（SHA-256 6bbd49a9145dc5f081d183089307a6527b70d2a252e475cd93bf5c5df42bb6e4）已 install -r 到 L2；系统枚举到 `com.app.business.base.module.test/androidx.test.runner.AndroidJUnitRunner`。
+
+CodePush shim 未使用；依赖版本来自已合并的 app/build.gradle，未新增临时改动。

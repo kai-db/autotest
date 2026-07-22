@@ -1,0 +1,10 @@
+Android 测试栈分析（2026-07-18）
+
+- Unit：JUnit4；现有业务测试位于各模块 src/test。
+- Instrumentation runner：androidx.test.runner.AndroidJUnitRunner。
+- UI：传统 View/DataBinding 为主，AutoTest AAR 提供 Espresso + UIAutomator 端到端能力。
+- Gated test source：app/src/androidTestAutotest，仅当 local.properties 的 autotest.enabled=true 时挂入 androidTest。
+- 正常/生产 App 不引入 AutoTest 或账号注入 harness；相关依赖仅 androidTestImplementation。
+- 本轮不新增 DI、mock、Robolectric、截图框架或生产 test hook；状态机优先 JVM 真代码，真实生命周期/后端/UI 才进入设备层。
+- BTC JS↔Native 比较位于 BaseModule androidTest，使用公开固定向量与独立 verifier/oracle，不读取真实钱包密钥。
+

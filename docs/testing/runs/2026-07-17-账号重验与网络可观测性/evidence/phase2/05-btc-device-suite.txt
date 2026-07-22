@@ -1,0 +1,15 @@
+执行时间：2026-07-18 15:03（Asia/Singapore）
+设备：L2 emulator-5556
+测试 APK：`business/BaseModule/build/outputs/apk/androidTest/debug/BaseModule-debug-androidTest.apk`
+SHA-256：97a0ef0f458ccf1bdbadca63fcfaf9118055be2a2d804cadeb3fe8f800ea63db
+
+当前工作区源码对应的三组真实 androidTest：
+- BtcDerivationCompatTest：5 条，全部 PASS（JS↔BIP、JS↔Native、三生产路径、回调基线、现有非法助记词缺陷基线）。
+- BtcMessageSignCompatTest：3 条，全部 PASS（compressed flag、非 legacy 地址能力观察、legacy 恢复同钥）。
+- BtcPsbtCapabilityTest：2 条，其中静态能力 PASS 1 条，regtest 依赖假设 BLOCKED 1 条。
+
+instrumentation 汇总：Tests run 10；Failures 0；Assumption BLOCKED 1；Instrumentation exit code -1（AndroidJUnitRunner 正常完成）。
+首次使用旧 BaseModule test APK 的 2 个失败不纳入当前结果：该 APK 在合并后源码前构建，header 断言与源码不一致，已通过重建/重装复核；首次 JS bridge 240s 超时亦由旧 APK/冷启动状态造成，当前 APK 重跑通过。
+
+安全边界：只使用公开固定向量和 test-only oracle；未读取真实钱包助记词、私钥、完整地址、签名或 token。
+

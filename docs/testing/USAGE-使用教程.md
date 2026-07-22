@@ -142,16 +142,16 @@ AI 会自动：
 
 ## 4. 发现 Bug → 修复走 agent-dev-loop（强制，铁律#5）
 
-**分析问题 / 改代码不直接改**，必须走 `agent-dev-loop` skill（Claude 计划/实现 + Codex 只读独立评审闭环）。
+**分析问题 / 改代码不直接改**，必须走 `agent-dev-loop` skill（启动方 agent 为 driver 计划/实现，另一方 agent 为 reviewer 只读独立评审：从 Claude Code 打开则 Claude driver + Codex reviewer，从 Codex 打开则反之）。
 **分两种模式，按阶段用，不要混**：
 
 | 模式 | 用在 | 动作 | 产出 |
 |---|---|---|---|
 | **分析记录模式** | Phase 2 / 5 / 6 遇 FAIL | 建任务目录，`index.md` 写 Status=`ANALYZED` + 复现步骤 + 截图/logcat 原始证据 + 初判根因；限时 10min，判不准就写「待 Phase 4 深挖」 | 只有 `index.md`，**零代码改动** |
-| **修复模式** | Phase 4 | 续跑**同一个**任务目录：plan → Codex plan review → 实现 → Codex impl review → Status=`FIXED` | plan/implementation/review + 代码改动 |
+| **修复模式** | Phase 4 | 续跑**同一个**任务目录：plan → reviewer plan review → 实现 → reviewer impl review → Status=`FIXED` | plan/implementation/review + 代码改动 |
 
 1. 在**被测项目**（debox）建 `docs/implementation/YYYY-MM-DD-NN-动词-对象/`（T2 四件：index/plan/implementation/review）。
-2. 写 plan → **Codex plan review**（PASS 才落 Accepted Plan）→ 实现 → **Codex impl review**（无 Critical/unresolved Important 才收尾）→ 回写。
+2. 写 plan → **reviewer plan review**（PASS 才落 Accepted Plan）→ 实现 → **reviewer impl review**（无 Critical/unresolved Important 才收尾）→ 回写。
 3. 范例（本次即用它接入框架）：debox `docs/implementation/2026-07-02-integrate-autotest-instrumented/`。
 > 详见 `TEST_GUIDE.md` 第六节。修完**全部** FAIL 才回到 Phase 5 回归、Phase 6 验收。
 
@@ -172,6 +172,6 @@ AI 会自动：
 
 1. **建 case（A）**：`runs/2026-07-10-资产页刷新/cases.md`，读 `app-knowledge/` 拿资产页元素，写 P0「进资产页→下拉刷新→数据更新且无 crash」（只读）。
 2. **AI 驱动跑**：“按该 cases.md 跑测试” → AI 读知识库→确认环境→逐条执行→危险比对→`results.md` 记结果（长测 `/loop 5m` 监工）。
-3. **发现 FAIL**：AI 建 debox `docs/implementation/2026-07-10-fix-asset-refresh/` → plan → Codex review → 修 → Codex review → 回写 → 回归。
+3. **发现 FAIL**：AI 建 debox `docs/implementation/2026-07-10-fix-asset-refresh/` → plan → reviewer review → 修 → reviewer review → 回写 → 回归。
 4. **沉淀回归用例（B）**：把稳定的「资产页加载」关键路径写成 `AssetPageSmokeTest : DeBoxBaseTest`（`scenario{}` + `locator` + `aiAsserter`），`autotest.enabled=true` 真机验通过，纳入以后每次回归。
 5. **收尾**：知识库补新元素；有可泛化坑写 lessons；`autotest.enabled` 复位 false。

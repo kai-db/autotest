@@ -1,0 +1,7 @@
+# 冷启动账号登录与 IM episode
+
+日期：2026-07-18，设备 L1，账号恢复为 `10b92305`
+
+- `am force-stop` 后冷启动 `SplashActivity`，返回 `LaunchState: COLD`、`MainActivity`，无 `FATAL EXCEPTION`/`ANR`。
+- 本次 logcat 观察到 `jim_connect_start` episode `im-mrq2mqe4-2`、`-3`、`-4`，随后 `jim_status connected` 仅绑定 `-4`，`im_connected dt=2407`。
+- 因冷启动单次出现多个 connect_start，未满足“单一 episode”判据，TC-C-001 记 FAIL；需后续修复/回归确认。

@@ -1,0 +1,16 @@
+执行时间：2026-07-18 15:23-15:26（Asia/Singapore）
+设备：L1 emulator-5554、L2 emulator-5556；当前合并后的 App/test APK
+
+两机 `AccountAuthInjectionHarness` 全类执行：7/7 tests OK，0 failure。
+
+结果摘要（两机均复现）
+- `need_again_login_once`：episode_start=-2023、auto_resign=-2023、最终 app_login ok channel=JC 各 1。
+- `account_valida_once`：episode_start=-2018、auto_resign=-2018、最终 app_login ok channel=JC 各 1。
+- `token_overdue_once`：episode_start=-2007、auto_resign=-2007、最终 app_login ok channel=JC 各 1。
+- `token_overdue_burst`：posted count=8；episode_start=1、auto_resign=1、app_login ok=1；无 FATAL/ANR。
+- `repeat_same_wallet`：posted count=8；每机均有 7 次 `setWallet skip: same attempt in flight`，窗口内 app_login ok=1。
+- `release_instance_during_login`：实例释放注入完成，instrumentation 正常返回；未观察到 FATAL/ANR。
+- `wallet_material_inventory`：L1 5 个本地助记词钱包、L2 3 个；不输出任何敏感材料。
+
+这组证据覆盖 A-001~A-004、D-003/F-001 的 harness 子步骤；不把它冒充成 UI 切钱包、登出、被踢或后台 force-stop 全用例。
+

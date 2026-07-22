@@ -1,0 +1,9 @@
+# 十轮在途清理回归（中止）
+
+日期：2026-07-18，设备 L1
+
+- 按“冷启→等待登录在途→force-stop→立即冷启”执行监工循环。
+- 第 1、2 轮回到 `MainActivity`；第 3 轮冷启后落在 `WalletCreateActivity`，且日志筛选出现异常计数。
+- 为避免在非预期创建页面继续操作，立即停止循环；未将该轮记为 PASS，也未执行任何创建/删除动作。
+- 已恢复动画设置为 window=1、transition=1、animator=null，并重新冷启回到 `MainActivity`。
+- TC-E-002/TC-T-001 仍为 NOT_RUN，需后续定位异常后重新执行。

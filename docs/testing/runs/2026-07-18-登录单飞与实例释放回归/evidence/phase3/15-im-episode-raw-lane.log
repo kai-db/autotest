@@ -1,0 +1,53 @@
+07-18 17:38:11.432 20405 20405 I [FLogger:IMConn]: jim_navi_config hosts=im-s.debox.pro
+07-18 17:38:11.452 20405 20530 W [JLogger:CON-Push]: not register com.juggle.im.push.hw.HWPush
+07-18 17:38:11.453 20405 20530 W [JLogger:CON-Push]: not register com.juggle.im.push.xm.XMPush
+07-18 17:38:11.454 20405 20530 W [JLogger:CON-Push]: not register com.juggle.im.push.vivo.VIVOPush
+07-18 17:38:11.455 20405 20530 W [JLogger:CON-Push]: not register com.juggle.im.push.oppo.OPPOPush
+07-18 17:38:11.456 20405 20530 W [JLogger:CON-Push]: not register com.juggle.im.push.jg.JGPush
+07-18 17:38:11.457 20405 20530 W [JLogger:CON-Push]: not register com.juggle.im.push.honor.HonorPush
+07-18 17:38:11.619 20405 20457 I [JLogger:FSM-Sm]: [ConnIdleState] processMessage : network available
+07-18 17:38:11.620 20405 20457 I [JLogger:FSM-Sm]: [ConnSuperState] processMessage : network available
+07-18 17:38:13.986 20405 20405 I [JLogger:CON-BG]: Foreground
+07-18 17:38:13.997 20405 20457 I [JLogger:FSM-Sm]: [ConnIdleState] processMessage : enter foreground
+07-18 17:38:13.998 20405 20457 I [JLogger:FSM-Sm]: [ConnSuperState] processMessage : enter foreground
+07-18 17:38:14.067 20405 20405 W [FLogger:Login]: check_token ok channel=JC auto=false
+07-18 17:38:14.072 20405 20405 I [FLogger:IMConn]: jim_connect_start episode_id=im-mrq6c02v-2
+07-18 17:38:14.075 20405 20405 I [JLogger:CON-Connect]: token is ******************************************UV-0-ZXblE**********ilMjWL5g==
+07-18 17:38:14.078 20405 20457 I [JLogger:FSM-Sm]: [ConnIdleState] processMessage : user connect
+07-18 17:38:14.090 20405 20457 I [JLogger:FSM-Sm]: leave state [ConnIdleState]
+07-18 17:38:14.096 20405 20457 I [JLogger:FSM-Sm]: enter state [ConnConnectingState]
+07-18 17:38:14.112 20405 20457 I [JLogger:CON-Db]: db notice, isOpen is true
+07-18 17:38:14.118 20405 20457 I [JLogger:WS-Connect]: appKey is ****tugd****k2g7, token is ******************************************UV-0-ZXblE**********ilMjWL5g==, servers is [wss://im-s.debox.pro]
+07-18 17:38:14.121 20405 20457 I [JLogger:CON-Connect]: connecting timer start
+07-18 17:38:14.649 20405 20405 I [FLogger:SessBoot]: event=cold_enter,t0=176940272
+07-18 17:38:14.700 20405 20405 I [FLogger:SessBoot]: event=cache_read,cost=14,n=4,mode=sync-main
+07-18 17:38:14.798 20405 20405 I [FLogger:SessBoot]: event=container_shown,dt=148
+07-18 17:38:15.172 20405 20405 I [FLogger:IMConn]: jim_connect_start episode_id=im-mrq6c02v-3
+07-18 17:38:15.174 20405 20405 I [JLogger:CON-Connect]: token is ******************************************UV-0-ZXblE**********ilMjWL5g==
+07-18 17:38:15.181 20405 20457 I [JLogger:FSM-Sm]: [ConnConnectingState] processMessage : user connect
+07-18 17:38:15.183 20405 20457 W [JLogger:CON-Connect]: same token is connecting
+07-18 17:38:15.358 20405 20405 I [FLogger:SessBoot]: event=first_list,dt=708,src=snapshot,n=4,fp=4:7a9b5d61,acct=a702f86b
+07-18 17:38:15.376 20405 20453 I [JLogger:WS-Connect]: onOpen
+07-18 17:38:15.379 20405 20453 I [JLogger:CON-Enc]: DataConverter not exist
+07-18 17:38:15.609 20405 20530 I [JLogger:CON-Push]: add channel FCM
+07-18 17:38:15.617 20405 20457 I [JLogger:FSM-Sm]: [ConnConnectingState] processMessage : connect done
+07-18 17:38:15.619 20405 20457 I [JLogger:FSM-Sm]: leave state [ConnConnectingState]
+07-18 17:38:15.620 20405 20457 I [JLogger:CON-Connect]: connecting timer stop
+07-18 17:38:15.620 20405 20457 I [JLogger:FSM-Sm]: enter state [ConnConnectedState]
+07-18 17:38:15.681 20405 20405 I [FLogger:IMConn]: jim_status connecting episode_id=im-mrq6c02v-3 elapsed_ms=509
+07-18 17:38:15.906 20405 20405 I [FLogger:SessBoot]: event=lazyinit_fire,dt=1257
+07-18 17:38:16.082 20405 20405 I [FLogger:IMConn]: jim_connect_start episode_id=im-mrq6c02v-4
+07-18 17:38:16.083 20405 20405 I [JLogger:CON-Connect]: token is ******************************************UV-0-ZXblE**********ilMjWL5g==
+07-18 17:38:16.087 20405 20457 I [JLogger:FSM-Sm]: [ConnConnectedState] processMessage : user connect
+07-18 17:38:16.087 20405 20457 W [JLogger:CON-Connect]: connection already exist
+07-18 17:38:16.091 20405 20405 I [FLogger:IMConn]: jim_status connected episode_id=im-mrq6c02v-4 elapsed_ms=9
+07-18 17:38:16.091 20405 20530 I [JLogger:CON-Push]: on push token received, channel= FCM, token= cK-spKlWRl6_ELmKYMGagv:APA91bEbVZ9TqHIxuNyTzd1Cb3NMBpjQxBbDDiEBJYfBZlvkpu44u7i0HTrHZnqC9QR1iZFLr6zcFPF3XMkMuZWRmLCXA2X774kEVuSxXNqfujlTE9DPyP8
+07-18 17:38:16.092 20405 20530 I [JLogger:CON-Push]: registerPushToken, channel is FCM, token is cK-spKlWRl6_ELmKYMGagv:APA91bEbVZ9TqHIxuNyTzd1Cb3NMBpjQxBbDDiEBJYfBZlvkpu44u7i0HTrHZnqC9QR1iZFLr6zcFPF3XMkMuZWRmLCXA2X774kEVuSxXNqfujlTE9DPyP8
+07-18 17:38:16.279 20405 20616 I [JLogger:CON-Push]: registerPushToken success
+07-18 17:38:16.624 20405 20405 I [FLogger:SessBoot]: event=im_connected,dt=1975
+07-18 17:38:17.824 20405 20405 I [FLogger:SessBoot]: event=merge_done,cost=252,n=4
+07-18 17:38:17.883 20405 20405 I [FLogger:SessBoot]: event=sync_token,has=false,len=0
+07-18 17:38:17.886 20405 20405 I [FLogger:SessBoot]: event=server_done,cost=387,ok=true,mode=full-v2,pages=1,items=0,bytes=0
+07-18 17:38:17.886 20405 20405 I [FLogger:SessBoot]: event=settled,dt=3237,n=4,fp=4:7a9b5d61
+07-18 17:38:17.953 20405 20405 I [FLogger:SessBoot]: event=session_persist_done,cost=68,ok=true,mode=full-v2,items=0
+07-18 17:38:18.259 20405 20405 I [FLogger:SessBoot]: event=merge_done,cost=2,n=4

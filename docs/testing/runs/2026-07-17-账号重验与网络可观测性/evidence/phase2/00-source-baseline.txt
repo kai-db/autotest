@@ -1,0 +1,42 @@
+采集时间：2026-07-18（Asia/Singapore）
+仓库：/Users/xiaochengcheng/StudioProjects/debox-android
+分支：dev
+HEAD：e0650d2b1386d8a527893f5301fb431f98b55dbe
+测试范围起点：b8fd28ddffca966c4cd9ff3b97e6dd1c1107e51f（包含）
+
+提交范围（按时间正序）：
+b8fd28ddff feat(base): HTTP 全链路 call_id 追踪与失败阶段诊断
+7eca437361 feat(main): 账号失效周期门禁，同周期只触发一次登出与重验
+c7b17ad2d2 feat(im): JIM 连接周期观测与 navi host 脱敏日志
+daf8572ffa docs: 账号重验门禁与网络可观测性设计、计划与评审档案
+4c220cf8a5 feat: 账号重验 G1/G2——本地钱包全码自动重签 + token 认证世代守卫
+c17a24ce6b docs: v2.15.0 登录死环诊断与 G1/G2 修复任务档案、项目账本更新
+023d0319c4 feat: 账号重验门禁语义化转换与 TP/WC 登录失败重试恢复
+c27bf78f54 fix: 加固账户重验与钱包登录链路
+35af53ce63 docs: 记录登录接线回归覆盖方案
+e0650d2b13 docs: 清理已归档的 ANR 分析材料
+
+未提交修改：
+M business/BaseModule/build.gradle
+M config.gradle
+M docs/implementation/2026-07-18-02-fix-walletlogin-singleflight-bgsign/index.md
+M docs/implementation/2026-07-18-02-fix-walletlogin-singleflight-bgsign/review.md
+M docs/lessons.md
+
+未跟踪文件：
+business/BaseModule/src/androidTest/java/com/app/business/base/module/btc/BtcDerivationCompatTest.kt
+business/BaseModule/src/androidTest/java/com/app/business/base/module/btc/BtcMessageSignCompatTest.kt
+business/BaseModule/src/androidTest/java/com/app/business/base/module/btc/BtcPsbtCapabilityTest.kt
+business/BaseModule/src/androidTest/java/com/app/business/base/module/btc/BtcTestVectors.kt
+business/BaseModule/src/androidTest/java/com/app/business/base/module/btc/JsBtcOracle.kt
+business/BaseModule/src/androidTest/java/com/app/business/base/module/btc/NativeBtcOracle.kt
+docs/implementation/2026-07-18-03-analyze-btc-js-to-native/index.md
+
+工作区 diff 指纹（git diff HEAD，排除 docs/anr/**）：
+723e8403639f9d27217a4b660e4c4680f988a0332ec74aa3406a890e161cf5a2
+
+构建前追加 test-only AccountAuthInjectionHarness 后指纹：
+d585be4ba92e52be58fbd0ef5e3e956190041fce31a083544487c9c128cf842e
+
+旧文档规模（仅作背景，不沿用旧结论）：
+cases.md 82 行；results.md 110 行。

@@ -1,0 +1,9 @@
+Android 测试栈分析（2026-07-18）
+
+- Unit：JUnit4；登录协调器、鉴权熔断、重验门禁、BTC 聚合器均由 JVM 真代码测试承接确定性并发矩阵。
+- Instrumentation：androidx.test.runner.AndroidJUnitRunner；设备端使用 gated androidTestAutotest + AutoTest(Espresso/UIAutomator)。
+- App 以 View/DataBinding 为主；本轮不安装新 UI/截图/DI/mock 框架。
+- AccountAuthInjectionHarness 只制造生产事件/竞争窗口，不 fake 生产协调器，不伪造服务端业务码。
+- 正常 App 源集不含 harness；仅 autotest.enabled=true 时进入测试 APK。
+- BaseModule BTC androidTest 使用公开固定向量验证 JS↔Native 派生、消息签名与 PSBT 能力边界，不读取真实钱包密钥。
+

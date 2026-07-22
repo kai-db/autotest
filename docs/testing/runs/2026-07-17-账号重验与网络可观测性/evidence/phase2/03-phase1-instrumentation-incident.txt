@@ -1,0 +1,23 @@
+采集时间：2026-07-18 14:43（Asia/Singapore）
+阶段：Phase 1 测试物料只读盘点（修复前）
+
+现象
+- L1/L2 执行 app test-only instrumentation 后均返回 `shortMsg=Process crashed`。
+- 两机均在 JuggleIM `J_SEND` 线程触发 `NoSuchMethodError`：测试 APK 中的
+  `com.google.protobuf.GeneratedMessageLite` 缺少 `registerDefaultInstance`。
+- L2 在崩溃前完成安全汇总：3 个本地助记词钱包、0 个 private-key-only 钱包、
+  TP=0、WalletConnect=0；BTC 已保存 Native SegWit/Nested SegWit/Taproot 各 1。
+  未读取或记录地址、助记词、私钥、token、签名。
+
+根因
+- DeBox `app/build.gradle` 的 gated androidTest 接入固定为 `com.autotest:autotest:1.6.0`。
+- `appDebugAndroidTestRuntimeClasspath` 解析到
+  `espresso-contrib:3.5.1 -> accessibility-test-framework:3.1.2 -> protobuf-lite:3.0.1`。
+- 旧 protobuf-lite 被打入测试 APK并覆盖宿主 protobuf-javalite；这是测试运行时依赖冲突，
+  不是产品普通冷启动路径复现。
+
+处置计划
+- 先保留本证据，再将仅在 `autotest.enabled=true` 时生效的 androidTest 依赖升级到
+  当前已发布至 mavenLocal 的 AutoTest 1.8.2。
+- 用 `dependencyInsight`/APK 构建/两机 instrumentation 重跑证明 protobuf-lite 已消失且进程不再崩溃。
+

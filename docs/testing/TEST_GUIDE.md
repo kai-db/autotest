@@ -121,8 +121,8 @@ docs/testing/
 > 而 Phase 结构、铁律、白名单、危险红线**即使是收紧也只能提议不能自改**，详见 §9.1。）
 >
 > **修复必须走 `agent-dev-loop` skill**：Phase 4 分析问题、修复代码**不直接改**，而是用
-> Claude 计划/实现/修复/记录 + Codex 只读独立 review 的协作闭环（详见「六、修复阶段走
-> agent-dev-loop」）。
+> 启动方 agent（driver）计划/实现/修复/记录 + 另一方 agent（reviewer）只读独立 review
+> 的协作闭环（角色分配规则详见「六、修复阶段走 agent-dev-loop」）。
 
 ### 前提条件
 
@@ -181,8 +181,8 @@ docs/testing/
       │
       ▼
   Phase 4: 全部修复（走 agent-dev-loop skill，见第六节）
-  逐个 FAIL 续跑其任务目录：plan → Codex plan review →
-  实现 → Codex 实现 review → 回写 results.md
+  逐个 FAIL 续跑其任务目录：plan → reviewer plan review →
+  实现 → reviewer 实现 review → 回写 results.md
   修完全部 FAIL 才进 Phase 5（不修一个跑一次）
       │
       ▼
@@ -215,7 +215,7 @@ docs/testing/
 - **绝不因为"跑不完"而缩减 Phase 6**——验收全量是最后一道防线。跑不完的正确应对是降低单条成本（§5.10 AAR 分层）和并行（§5.6），不是减少覆盖
 - **FAIL 必须先过三分类（§5.3）再进修复**，防止假阳性驱动对健康代码的改动
 - 必须**先更新文档（Phase 3）再修复代码（Phase 4）**
-- **Phase 4 修复必须走 `agent-dev-loop` skill**（建 `docs/implementation/` 任务目录 + Codex review 闭环），不直接改代码——见第六节
+- **Phase 4 修复必须走 `agent-dev-loop` skill**（建 `docs/implementation/` 任务目录 + reviewer review 闭环），不直接改代码——见第六节
 - 最终验收是**独立的全新测试**，不复用之前结果；**验收阶段发现问题回到迭代修复阶段，不在验收阶段内就地修**
 
 ### agent-dev-loop 的两种调用模式
@@ -225,7 +225,7 @@ docs/testing/
 | 模式 | 用在 | 动作 | 产出 |
 |---|---|---|---|
 | **分析记录模式** | Phase 2 / 5 / 6 遇 FAIL | 建 `docs/implementation/YYYY-MM-DD-NN-fix-xxx/`，`index.md` 写 Status=`ANALYZED`、复现步骤、截图/logcat 证据、初判根因 | 只有 `index.md`，**无代码改动** |
-| **修复模式** | Phase 4 | 续跑同一目录：plan → Codex plan review → 实现 → Codex 实现 review → Status=`FIXED` | plan/implementation/review + 代码改动 |
+| **修复模式** | Phase 4 | 续跑同一目录：plan → reviewer plan review → 实现 → reviewer 实现 review → Status=`FIXED` | plan/implementation/review + 代码改动 |
 
 分析记录模式**单条限时 10 分钟**：证据抓够就收，根因判不准就写「待 Phase 4 深挖」，不在测试期做深度调查。
 
@@ -241,7 +241,7 @@ docs/testing/
 | 设备离线 / adb 无响应 | `adb kill-server && adb start-server`，重连 1 次；模拟器则重启 AVD |
 | 命中危险操作清单 | 按 §二 规避，记「已规避」，**不问用户**，下一条 |
 | 依赖外部系统 | 转 `⏸️-外部阻塞`（§7.5 轮询），继续其余用例 |
-| Codex review 循环超上限 | 按第六节升级，该 case 转 `⏸️-需人工`，继续其余用例 |
+| reviewer review 循环超上限 | 按第六节升级，该 case 转 `⏸️-需人工`，继续其余用例 |
 | 真机不在线 | 该 case 标 `⏸️-待真机`，继续（§7.1 降级规则） |
 
 **唯一允许停下的情形**：§7.6 人工介入白名单五项。其余任何"要不要继续 / 要不要这样修"都由 AI 自行决断并在 results.md 记录决策依据。
@@ -410,17 +410,23 @@ Phase 6 出现 FAIL 时先过 flaky 判定，**判定标准必须严格，否则
 ### 为什么
 
 直接改代码 = 无独立 review、无 plan 基线、无 VERDICT 把关，容易引入回归、漏验证根因。
-agent-dev-loop 让 Codex 以**只读**身份独立评审 plan 与改动，形成"计划→评审→实现→评审"闭环。
+agent-dev-loop 让另一方 agent（reviewer）以**只读**身份独立评审 plan 与改动，形成"计划→评审→实现→评审"闭环。
 （历次测试都没走这步——`docs/implementation/` 至今为空，这正是要纠正的偏离。）
+
+**角色分配规则**：启动方 agent 固定为 driver（唯一生产写入者），另一方固定为 reviewer——
+从 Claude Code 打开则 Claude driver + Codex reviewer（`--profile claude-driver`），
+从 Codex 打开则 Codex driver + Claude reviewer（`--profile codex-driver`）。
+**task 内禁止换角**；不同 task 可因启动方不同而角色互换。review topology 默认 `paired`
+（对方为 peer reviewer/advisor），用户显式选择时可用 `dual-independent-review`（双独立只读 reviewer）。
 
 ### 步骤（每个待修问题一遍）
 
 1. **建任务目录** `docs/implementation/YYYY-MM-DD-动词-对象/`，默认四件：
    `index.md`（权威入口：当前 Status + 最终 VERDICT）/ `plan.md` / `implementation.md` / `review.md`
-2. **写 plan** → 调 Codex 做 plan review（只读）→ 修到 `VERDICT: PASS` 或
+2. **写 plan** → 调 reviewer 做 plan review（只读）→ 修到 `VERDICT: PASS` 或
    `PASS_WITH_ACCEPTED_RISK` → 在 `plan.md` 写下 `Accepted Plan` 基线
-3. **按基线实现**，进度/偏差记 `implementation.md`；真遇歧义/风险再 consult Codex
-4. **自检后**调 Codex review 改动（对照 Accepted Plan）→ 修到无 Critical、无遗留 Important
+3. **按基线实现**，进度/偏差记 `implementation.md`；真遇歧义/风险再 consult reviewer
+4. **自检后**调 reviewer review 改动（对照 Accepted Plan）→ 修到无 Critical、无遗留 Important
 5. **收尾**：`index.md` 写权威 Status / 最终 VERDICT / 小结；可复用经验回写
    `docs/lessons.md`（项目级）或全局 ledger
 6. **回写 results.md**：该 FAIL 的修复结论 + 链接到对应 `docs/implementation/` 任务目录
@@ -429,7 +435,7 @@ agent-dev-loop 让 Codex 以**只读**身份独立评审 plan 与改动，形成
 
 - `VERDICT`（`PASS` / `FAIL` / `PASS_WITH_ACCEPTED_RISK`）驱动状态机；findings 只报 confidence ≥ 80 的 `Critical` / `Important`
 - 循环上限：plan review 3 轮、实现 review/fix 5 轮、consult 3 轮 → 超限升级给用户
-- Codex **只读**（不传 `--write`）；不写密钥到代码/文档/日志；高风险操作先问用户
+- reviewer **只读**（不传 `--write`）；不写密钥到代码/文档/日志；高风险操作先问用户
 
 > 完整协议见 `agent-dev-loop` skill。被测 App（DeBox）代码在 `debox-android` 工作区；
 > autotest 框架自身代码改动同样走本闭环。
@@ -531,7 +537,7 @@ agent-dev-loop 让 Codex 以**只读**身份独立评审 plan 与改动，形成
 
 1. 建任务目录 `docs/implementation/YYYY-MM-DD-NN-design-cases-<功能>/`
 2. `plan.md` 写：**改动清单 → 影响面分析 → 用例矩阵**（含覆盖依据）
-3. **Codex plan review 的评审重点是「覆盖是否有洞」**——不是评审用例写得好不好看，
+3. **reviewer plan review 的评审重点是「覆盖是否有洞」**——不是评审用例写得好不好看，
    而是问「哪些受影响功能没有对应用例」「哪些判据无法机器验证」「哪些边界没覆盖」
 4. 修到 `VERDICT: PASS` 才落 `Accepted Plan`，据此生成 `runs/日期-功能/cases.md`
 5. 测试过程中新发现的影响面，回写该任务目录并补用例（记 Round N）
@@ -607,7 +613,7 @@ agent-dev-loop 让 Codex 以**只读**身份独立评审 plan 与改动，形成
 - [ ] 覆盖了**改动本身**与**受影响的既有功能**两类，不只有前者
 - [ ] 事件总线/全局单例/共享缓存的订阅方与使用方已显式检索并覆盖
 - [ ] 历史曾 FAIL 过的相关用例已纳入（§5.7 必跑项）
-- [ ] 已过 Codex plan review 且 VERDICT 为 PASS / PASS_WITH_ACCEPTED_RISK
+- [ ] 已过 reviewer plan review 且 VERDICT 为 PASS / PASS_WITH_ACCEPTED_RISK
 
 ---
 

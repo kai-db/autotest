@@ -1,0 +1,11 @@
+采集时间：2026-07-18（Asia/Singapore）
+包名：com.tm.security.wallet
+
+设备映射：
+- L1 emulator-5554 = Pixel_10_Pro_XL；2.15.0 / 21500000；debuggable；采集时 UID 10235。
+- L2 emulator-5556 = debox_root；2.15.0 / 21500000；debuggable；采集时 UID 10208。
+- L3 402714f0 = 25067PYE3C；2.15.3 / 21500000；非 debuggable；正式环境，只读。
+- L3 RFCYA0F9SSZ = SM_S9210；2.15.0 / 21500000；非 debuggable；环境与签名待 Phase 1 复核。
+
+四台设备采集时均在线。UID、版本、签名、账号和钱包物料在安装/执行前重新查询；不得根据本文件硬编码。
+

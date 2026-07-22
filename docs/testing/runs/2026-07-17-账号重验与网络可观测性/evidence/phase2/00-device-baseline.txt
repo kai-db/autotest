@@ -1,0 +1,31 @@
+采集时间：2026-07-18（Asia/Singapore）
+包名：com.tm.security.wallet
+
+L1 emulator-5554
+- AVD：Pixel_10_Pro_XL（由 ro.boot.qemu.avd_name 实测）
+- 已装版本：2.15.0 / 21500000
+- UID：10235（每次安装后必须重新查询，不得复用）
+- run-as：可用，debuggable
+
+L2 emulator-5556
+- AVD：debox_root（由 ro.boot.qemu.avd_name 实测）
+- 已装版本：2.15.0 / 21500000
+- UID：10208（每次安装后必须重新查询，不得复用）
+- run-as：可用，debuggable
+
+L3 402714f0
+- 设备：25067PYE3C
+- 已装版本：2.15.3 / 21500000
+- UID：10407
+- run-as：不可用，非 debuggable
+- 约束：正式环境，仅只读复核，不执行账号/钱包写操作
+
+L3 RFCYA0F9SSZ
+- 设备：SM_S9210
+- 已装版本：2.15.0 / 21500000
+- UID：10338
+- run-as：不可用，非 debuggable
+- 约束：仅在重新核验测试环境、签名与可恢复账号后用于确认性测试
+
+采集时四台设备均为 device 状态。账号、钱包类型、网络环境和 APK 签名仍须在 Phase 1 现场核验。
+

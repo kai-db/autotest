@@ -1,0 +1,8 @@
+# L2 手动切钱包回归
+
+日期：2026-07-18，设备 L2
+
+- 从稳定账号进入账号切换列表，选择另一已备份本地钱包并等待 10 秒。
+- 过程中观察到多轮 `LoginOut`、`app_login ok channel=JC` 与新的 `jim_status connected` episode，日志中至少出现多组重复登录收口；最终页面落在 `FeatureNoticeActivity`。
+- 无 `FATAL EXCEPTION`/`ANR`，但未满足“切换后仅一轮新世代登录、无旧回包/重复 LoginOut”判据，记 FAIL。
+- 已停止继续操作，未删除钱包。
