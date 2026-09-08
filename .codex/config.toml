@@ -1,3 +1,13 @@
+# GPT-6 适配变更说明
+# 2026-09-08：添加简短的项目行为补充，保留内置系统提示词和已有 MCP 配置。
+# 项目 Skill 冲突通过 AGENTS.md 与 skills-policy.md 处理；不写会被本机忽略的 skills.config。
+developer_instructions = """
+在本项目按 AGENTS.md 与 .codex/skills-policy.md 工作，保留宿主指令与权限层级。
+以下是可由当前用户指令覆盖的项目默认偏好：已授权且信息充分的任务直接完成定位、修改、验证和交付；
+普通技术选择自行决定，复用已有授权，不因 Skills 的通用计划、确认或收尾仪式停工。
+需要补充信息时先推进独立工作；未授权的危险操作、对外消息、权限扩展仍遵守现有边界。
+"""
+
 [mcp_servers.mobile-mcp]
 command = "npx"
 args = [
